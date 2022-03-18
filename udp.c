@@ -45,6 +45,8 @@ int serverUDP(void){
 
     errcode=bind(fd, res->ai_addr, res->ai_addrlen);
     if(errcode==-1) exit(1); //error check
-
+    
+    /*FALTA DEVOLVER ADDRESS IF I'M NOT MISTAKEN*/
+    
     return 0;
 }

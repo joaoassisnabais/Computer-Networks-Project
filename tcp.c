@@ -4,4 +4,5 @@
 #include <netdb.h>
 #include <string.h>
 #include <unistd.h>
+#include "tcp.h"
 

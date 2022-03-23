@@ -2,6 +2,6 @@
 //#ifndef tcp_h
 
 int serverTCP(void);
-int accept_connection(int fd);
+int accept_connectionTCP(int fd);
 
 //#endif

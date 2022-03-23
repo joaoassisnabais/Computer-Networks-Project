@@ -25,25 +25,11 @@ int serverTCP(void){
     if(bind(fd, res->ai_addr,res->ai_addrlen) == -1) exit(1);
 
     if(listen(fd, 5) == -1) exit(1);
-    /*while(1){ 
-        
-        newfd=accept_connection(fd;
-        
-        while ((n=read(newfd, buffer, 128)) != 0){
-            if(n==-1) exit(1);
-            ptr=&buffer[0];
-            while (n>0){
-                if(nw=write(newfd,ptr,n) <= 0) exit(1);
-                n=-nw;
-                ptr+=nw;
-            }
-            close(newfd);
-        } 
-    }*/
+
     return fd;
 }
 
-int accept_connection(int fd){
+int accept_connectionTCP(int fd){
 
     struct sockaddr addr;
     socklen_t addrlen=sizeof(addr);

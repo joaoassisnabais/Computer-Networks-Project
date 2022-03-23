@@ -4,7 +4,6 @@
 #include <netdb.h>
 #include <string.h>
 #include <unistd.h>
-#define LOCAL_PORT "58001"
 
 int clientUDP(char **hostname, char **port){
 
@@ -21,6 +20,8 @@ int clientUDP(char **hostname, char **port){
 
     errcode = getaddrinfo(*hostname, *port, &hints, &res);
     if(errcode != 0) exit(1);
+
+    return 0;
 }
 
 int serverUDP(void){
@@ -40,13 +41,14 @@ int serverUDP(void){
     hints.ai_socktype= SOCK_DGRAM; //UDP socket
     hints.ai_flags=AI_PASSIVE;
 
-    errcode=getaddrinfo(NULL, LOCAL_PORT, &hints, res);
+    errcode=getaddrinfo(NULL, "58001", &hints, res);
     if(errcode!=0) exit(1); //error check
 
     errcode=bind(fd, res->ai_addr, res->ai_addrlen);
     if(errcode==-1) exit(1); //error check
+
+    errcode=listen(fd, 5);
+    if(errcode==-1) exit(1); //error check
     
-    /*FALTA DEVOLVER ADDRESS IF I'M NOT MISTAKEN*/
-    
-    return 0;
+    return fd;
 }

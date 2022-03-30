@@ -28,10 +28,6 @@ int serverUDP(void){
 
     struct addrinfo hints,*res;
     int fd, errcode;
-    struct sockaddr addr;
-    socklen_t addrlen;
-    ssize_t n, nread;
-    char buffer[128];
 
     fd=socket(AF_INET,SOCK_DGRAM,0); //open UDP socket
     if(fd==-1) exit(1); //error check
@@ -46,9 +42,17 @@ int serverUDP(void){
 
     errcode=bind(fd, res->ai_addr, res->ai_addrlen);
     if(errcode==-1) exit(1); //error check
-
-    errcode=listen(fd, 5);
-    if(errcode==-1) exit(1); //error check
     
     return fd;
+}
+
+int receive_messageUDP(int serverSocket, char *buffer){
+ 
+    struct sockaddr addr;
+    socklen_t addrlen;
+    ssize_t nread;
+
+    nread=recvfrom(serverSocket, buffer, 128, 0, &addr, &addrlen);
+
+    return nread;
 }

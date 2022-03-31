@@ -6,12 +6,14 @@ typedef struct node_info {
     int key;
     char ip[16];
     int port;
+    int fd;
 } nodeInfo;
 
 typedef struct node_state {
     nodeInfo *next;
     nodeInfo *self;
     nodeInfo *prev;
+    nodeInfo *old;
 } nodeState;
 
 typedef struct comms_message{
@@ -23,6 +25,6 @@ typedef struct comms_message{
 } message;
 
 void core(int selfKey, char *IP, int selfPort);
-void initState(bool isNew, nodeState *state, nodeInfo *prev, nodeInfo *next);
+void initState(bool isNew, nodeState *state, nodeInfo *prev, nodeInfo *next, int pfd, int nfd);
 
 //#endif

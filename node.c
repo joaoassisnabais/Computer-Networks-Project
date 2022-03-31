@@ -12,6 +12,7 @@
 #include "calls.h"
 #include "node.h"
 
+#define dist(start,end) ((end-start)%32)
 #define max(A,B) ((A)>=(B)?(A):(B))
 
 void change_prev(nodeState *currNode, nodeInfo newNode){
@@ -47,28 +48,37 @@ int initServers(fd_set *current, int *TCP, int *UDP, int maxfd, int port){
  * @param state state variables
  * @param prev struct with variables from prev node
  * @param next struct with variables from next node 
+ * @param pfd predecessors file descriptor
+ * @param nfd next file descriptor
  */
-void initState(bool isNew, nodeState *state, nodeInfo *prev, nodeInfo *next){
-    state->next=(nodeInfo*)malloc(sizeof(nodeInfo));
-    state->prev=(nodeInfo*)malloc(sizeof(nodeInfo));
+void initState(bool isNew, nodeState *state, nodeInfo *prev, nodeInfo *next, int pfd, int nfd){
     if(isNew==1){
+        state->next=(nodeInfo*)malloc(sizeof(nodeInfo));
+        state->prev=(nodeInfo*)malloc(sizeof(nodeInfo));
+
         //define next and prev equal to self
         state->next->key=state->self->key;
         state->next->port=state->self->port;
         strcpy(state->next->ip, state->self->ip);
+        state->next->fd=-1;
         state->prev->key=state->self->key;
         state->prev->port=state->self->port;
         strcpy(state->prev->ip, state->self->ip);
+        state->prev->fd=-1;
     }else{
         if(prev!=NULL){
-            state->next->key=next->key;
-            state->next->port=next->port;
-            strcpy(state->next->ip, next->ip);      
-        }
-        if(next!=NULL){
+            state->prev=(nodeInfo*)malloc(sizeof(nodeInfo));    
             state->prev->key=prev->key;
             state->prev->port=prev->port;
             strcpy(state->prev->ip, prev->ip);
+            state->prev->fd=pfd;      
+        }
+        if(next!=NULL){
+            state->next=(nodeInfo*)malloc(sizeof(nodeInfo));
+            state->next->key=prev->key;
+            state->next->port=prev->port;
+            strcpy(state->next->ip, next->ip);
+            state->next->fd=nfd;
         }
     }
 }
@@ -84,6 +94,7 @@ void initState(bool isNew, nodeState *state, nodeInfo *prev, nodeInfo *next){
 void initSelf(int k, char *ip, int port, nodeState *state){
     state=(nodeState*)malloc(sizeof(nodeState));
     state->self=(nodeInfo*)malloc(sizeof(nodeInfo));
+    state->old=(nodeInfo*)malloc(sizeof(nodeInfo));
     state->self->key=k;
     state->self->port=port;
     strcpy(state->self->ip, ip);
@@ -98,6 +109,7 @@ void initSelf(int k, char *ip, int port, nodeState *state){
 void closeSelf(nodeState *state, bool isLeave){
     if(!isLeave){
         free(state->self);
+        free(state->old);
         free(state);
     }
     free(state->next);
@@ -108,10 +120,9 @@ void closeSelf(nodeState *state, bool isLeave){
 void core(int selfKey, char *selfIP, int selfPort){
     char buffer[128], option[7];
     fd_set currentSockets, readySockets;
-    int serverSocketTCP=0, nextSocket, prevSocket;
-    int serverSocketUDP, maxfd;
-    bool isNew;
+    int serverSocketTCP, serverSocketUDP, maxfd, errcode;
     nodeState *state;
+    message msg;
 
     initSelf(selfKey, selfIP, selfPort, state);
 
@@ -136,26 +147,29 @@ void core(int selfKey, char *selfIP, int selfPort){
                 printf("User input for exit\n Exiting...\n");
                 closeSelf(state,0);
                 exit(0);
+                //free message
             }
 
             else if(strcmp(option,"new") == 0 || strcmp(option,"n") == 0 ){
                 maxfd=initServers(&currentSockets, &serverSocketTCP, &serverSocketUDP, maxfd, selfPort);
-                initState(1, &state, NULL, NULL);
+                initState(1, &state, NULL, NULL, -1, -1);
             }
 
             else if(strcmp(option,"bentry") == 0 || strcmp(option,"b") == 0){
                 maxfd=initServers(&currentSockets, &serverSocketTCP, &serverSocketUDP, maxfd, selfPort);
-                initState(0, &state, NULL, NULL);   //FALTA fazer isto preciso fazer find primeiro
+                initState(0, &state, NULL,  NULL, -1, -1);   //FALTA fazer isto preciso fazer find primeiro
             }
 
             else if(strcmp(option,"pentry") == 0 || strcmp(option,"p") == 0){
                 maxfd=initServers(&currentSockets, &serverSocketTCP, &serverSocketUDP, maxfd, selfPort);
-                prevSocket=pentry(state, buffer);
+                pentry(state, buffer);
+                FD_SET(state->prev->fd, &currentSockets);
+                maxfd=max(state->prev->fd,  maxfd);
             }
 
             else if(strcmp(option,"chord") == 0 || strcmp(option,"c") == 0){
                 if(maxfd==0) exit(1);
-                
+                 
             }
 
             else if(strcmp(option,"dchord") == 0 || strcmp(option,"echord") == 0 || strcmp(option,"d")){
@@ -176,33 +190,66 @@ void core(int selfKey, char *selfIP, int selfPort){
             else if(strcmp(option,"leave") == 0 || strcmp(option,"l") == 0){
                 if(maxfd==0) printf("Already out of any ring");
                 else closeSelf(state, 1);
-                
+                //free message
 
             }
         }
         //new connection to tcp server
         if(FD_ISSET(serverSocketTCP,&readySockets)){
-            nextSocket=accept_connectionTCP(serverSocketTCP);
-            FD_SET(nextSocket, &currentSockets);
             //need to write the rest -> basically if there is a next already close the channel and advise them of new prev
             // if there isnt any just accept and create state vars 
-
-
-            maxfd=max(nextSocket,maxfd);
+            if(state->next->fd != -1){
+                state->old->fd= state->next->fd;
+                state->old->key=state->next->key;
+                state->old->port=state->next->port;
+                strcpy(state->old->ip, state->next->ip);
+            }
+            //receive self and need to check if already have a next and if so if next key is higher or lower than new node 
+            // if bigger node is leaving and no need to send pred to next node just accept and change sys vars
+            // if lower means a new node is entering and must send pred with new info to B and close and update sys vars to new next
+            state->next->fd=accept_connectionTCP(serverSocketTCP);
+            FD_SET(state->next->fd, &currentSockets);
+            maxfd=max(state->next->fd,maxfd);
         }
-        if(FD_ISSET(serverSocketUDP,&readySockets)){
+        if(FD_ISSET(serverSocketUDP, &readySockets)){
             //recvfrom()
             //do what its supposed to do with the connection
             //basically turn on the read but maybe doing it by parts so it doesn't accept every packet at once
             
 
         }
-        if((FD_ISSET(prevSocket,&readySockets))){
+        if(FD_ISSET(state->prev->fd, &readySockets)){
 
+            
             
 
         }
-    }
-
-
+        if(FD_ISSET(state->next->fd, &readySockets)){
+            //if its a self need to check if node key from next is bigger than old 
+            //if next > old do nothing and expect fin
+            //if old > next send pred to old and expect a FIN
+            errcode = readTCP(state->next->fd, &msg);
+            //this means other end has closed the session
+            if(errcode == -1){
+                closeTCP(state->next->fd);
+                FD_CLR(state->next->fd, &currentSockets);
+                free(state->next);
+                state->next->fd=-1;
+            }else{
+                rcv_msg(state->next->fd, &msg);
+            }
+        }
+        if(FD_ISSET(state->old->fd, &readySockets)){
+            errcode = readTCP(state->old->fd, &msg);
+            //this means other end has closed the session
+            if(errcode == -1){
+                closeTCP(state->old->fd);
+                FD_CLR(state->old->fd, &currentSockets);
+                state->old->fd = -1;
+            }else{
+                perror("Message from leaving node is not FIN");
+                exit(1);
+            }
+        }
+    }    
 }

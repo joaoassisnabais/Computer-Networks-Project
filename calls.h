@@ -3,6 +3,7 @@
 #define calls_h
 //#ifndef node_h
 
-int pentry(nodeState *state, char *info);
+void pentry(nodeState *state, char *info);
+void rcv_msg(message *msg, nodeState *state);
 
 //#endif

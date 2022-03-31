@@ -13,7 +13,7 @@ int clientTCP(char *serverIP, int serverPort){
     int fd, n, errcode;
     char buffer[128], strPort[8];
 
-    fd==socket(AF_INET, SOCK_STREAM, 0);
+    fd=socket(AF_INET, SOCK_STREAM, 0);
     if(fd==-1){perror("TCP client fd"); exit(1);}
 
     memset(&hints, 0, sizeof hints);
@@ -72,21 +72,31 @@ int accept_connectionTCP(int fd){
     return newfd;
 }
 
-int treat_new_connectionTCP(int clientSocket, nodeState *state){
+/**
+ * @brief Read tcp message incoming and place it in message struct
+ * 
+ * @param fd file descriptor
+ * @param msg Message itself 
+ * @return checks if session is closed
+ */
+int readTCP(int fd, message *msg){
     char buffer[128];
     int nread=0;
-    message msg;
 
-    nread=read(clientSocket, &buffer, 128);
-    sscanf(buffer,"%s %d %s %s", msg.command, msg.nodeKey, msg.ip, msg.port);
-    strcpy(state->next->port, msg.port);
-    strcpy(state->next->ip, msg.ip);
-    state->next->key=msg.nodeKey;
-
-    return 0;
+    nread=read(fd, &buffer, 128);
+    
+    //session closed by the other end
+    if(read == 0){ 
+        return -1;
+    }
+    else{
+        sscanf(buffer,"%s %d %s %s", msg->command, msg->nodeKey, msg->ip, msg->port);
+        return 0;
+    }
 }
 
 void talkTCP(int fd, message *msg){
+    //PROTECT AGINST SIGPIPE
     int errcode=0;
     char str[128];
 
@@ -94,4 +104,11 @@ void talkTCP(int fd, message *msg){
     errcode=write(fd,str,sizeof(str));
     if(errcode==-1){perror("write failed"); exit(1);}
     if(errcode<sizeof(str)){perror("write didn't write the whole message"); exit(1);}
+}
+
+void closeTCP(int fd){
+    if(close(fd) == -1){
+        perror("Close TCP session failed");
+        exit(1);
+    }
 }

@@ -147,7 +147,7 @@ void core(int selfKey, char *selfIP, int selfPort){
                 printf("User input for exit\n Exiting...\n");
                 closeSelf(state,0);
                 exit(0);
-                //free message
+                //free whatever
             }
 
             else if(strcmp(option,"new") == 0 || strcmp(option,"n") == 0 ){
@@ -190,7 +190,7 @@ void core(int selfKey, char *selfIP, int selfPort){
             else if(strcmp(option,"leave") == 0 || strcmp(option,"l") == 0){
                 if(maxfd==0) printf("Already out of any ring");
                 else closeSelf(state, 1);
-                //free message
+                //free whatever
 
             }
         }
@@ -236,7 +236,7 @@ void core(int selfKey, char *selfIP, int selfPort){
                 free(state->next);
                 state->next->fd=-1;
             }else{
-                rcv_msg(state->next->fd, &msg);
+                rcv_msg(state->next->fd, &msg, &currentSockets);
             }
         }
         if(FD_ISSET(state->old->fd, &readySockets)){

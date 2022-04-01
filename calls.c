@@ -20,8 +20,9 @@
  * 
  * @param msg  The message itself
  * @param state State Variables
+ * @param current Current fd_set so it can be updated
  */
-void rcv_msg(message *msg, nodeState *state){
+void rcv_msg(message *msg, nodeState *state, fd_set *current){
 
     if(strcmp(msg->command, "SELF") == 0){
         nodeInfo next;
@@ -33,18 +34,23 @@ void rcv_msg(message *msg, nodeState *state){
     }
 
     if(strcmp(msg->command, "PRED") == 0){
-        closeTCP(state->prev->)
+        nodeInfo prev;
 
+        closeTCP(state->prev->fd);
+        FD_CLR(state->prev->fd, current);
+        free(state->prev);
 
+        prev.key=msg->nodeKey;
+        prev.port=msg->port;
+        strcpy(prev.ip, msg->ip);
+
+        prev.fd = clientTCP(&msg->ip, msg->port);
+        initState(0, &state, &prev, NULL, prev.fd, -1);
+        FD_SET(prev.fd, current);
+        msgSelf(prev.fd, state->self);
     }
-}
 
-
-void msgSelf(message *msg, nodeInfo *self){
-    strcpy(msg->command, "SELF");
-    strcpy(msg->ip,self->ip);
-    msg->nodeKey=self->key;
-    msg->port=self->port;
+    if(strcmp(msg->command, ""))
 }
 
 /**
@@ -58,17 +64,41 @@ void pentry(nodeState *state, char *info){
     nodeInfo prev, next;
     int prevSocket;
 
-    sscanf(info, "%s %d %s %d", trash, prev.key, prev.ip, prev.port);
-    prevSocket = clientTCP( &state->prev->ip, state->prev->port);
+    if(info != NULL){
+        sscanf(info, "%s %d %s %d", trash, prev.key, prev.ip, prev.port);
+    }
+    prev.fd = clientTCP(&prev.ip, prev.port);
     
-    initState(0, &state, &prev, NULL, prevSocket, -1);
+    initState(0, &state, &prev, NULL, prev.fd, -1);
+    msgSelf(prevSocket, state->self);
 }
 
-void pred(int fd, nodeInfo *nextPred){
+/**
+ * @brief Messages PRED message
+ * 
+ * @param fd fd to write do
+ * @param nextPred My next, next node's pred info
+ */
+void msgpred(int fd, nodeInfo *nextPred){
     message msg;
     strcpy(msg.command, "PRED");
     strcpy(msg.ip, nextPred->ip);
     msg.port=nextPred->port;
     msg.nodeKey=nextPred->port;
+    talkTCP(fd, &msg);
+}
+
+/**
+ * @brief Messages SELF message
+ * 
+ * @param fd fd to write do
+ * @param self My variables
+ */
+void msgSelf(int fd, nodeInfo *self){
+    message msg;
+    strcpy(msg.command, "SELF");
+    strcpy(msg.ip,self->ip);
+    msg.nodeKey=self->key;
+    msg.port=self->port;
     talkTCP(fd, &msg);
 }

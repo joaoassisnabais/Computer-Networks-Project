@@ -95,13 +95,22 @@ int readTCP(int fd, message *msg){
     }
 }
 
+/**
+ * @brief Receives a message and a file descriptor and writes to it
+ * 
+ * @param fd File descriptor to write to
+ * @param msg Message to send
+ */
 void talkTCP(int fd, message *msg){
-    //PROTECT AGINST SIGPIPE
+    //PROTECT AGAINST SIGPIPE
     int errcode=0;
     char str[128];
 
-    sprintf(str, "%s %d %s %d\n", msg->command, msg->nodeKey, msg->ip, msg->port);
-    errcode=write(fd,str,sizeof(str));
+    if(strcmp(msg->command, "PRED") || strcmp(msg->command, "EPRED") || strcmp(msg->command, "SELF")){
+        sprintf(str, "%s %d %s %d\n", msg->command, msg->nodeKey, msg->ip, msg->port);
+        errcode=write(fd,str,sizeof(str));
+    }
+
     if(errcode==-1){perror("write failed"); exit(1);}
     if(errcode<sizeof(str)){perror("write didn't write the whole message"); exit(1);}
 }

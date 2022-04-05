@@ -53,9 +53,6 @@ int initServers(fd_set *current, int *TCP, int *UDP, int maxfd, int port){
  */
 void initState(bool isNew, nodeState *state, nodeInfo *prev, nodeInfo *next, int pfd, int nfd){
     if(isNew==1){
-        state->next=(nodeInfo*)malloc(sizeof(nodeInfo));
-        state->prev=(nodeInfo*)malloc(sizeof(nodeInfo));
-
         //define next and prev equal to self
         state->next->key=state->self->key;
         state->next->port=state->self->port;
@@ -67,14 +64,12 @@ void initState(bool isNew, nodeState *state, nodeInfo *prev, nodeInfo *next, int
         state->prev->fd=-1;
     }else{
         if(prev!=NULL){
-            state->prev=(nodeInfo*)malloc(sizeof(nodeInfo));    
             state->prev->key=prev->key;
             state->prev->port=prev->port;
             strcpy(state->prev->ip, prev->ip);
             state->prev->fd=pfd;      
         }
         if(next!=NULL){
-            state->next=(nodeInfo*)malloc(sizeof(nodeInfo));
             state->next->key=prev->key;
             state->next->port=prev->port;
             strcpy(state->next->ip, next->ip);
@@ -95,9 +90,14 @@ void initSelf(int k, char *ip, int port, nodeState *state){
     state=(nodeState*)malloc(sizeof(nodeState));
     state->self=(nodeInfo*)malloc(sizeof(nodeInfo));
     state->old=(nodeInfo*)malloc(sizeof(nodeInfo));
+    state->next=(nodeInfo*)malloc(sizeof(nodeInfo));
+    state->prev=(nodeInfo*)malloc(sizeof(nodeInfo));
+    state->SC=(nodeInfo*)malloc(sizeof(nodeInfo));
     state->self->key=k;
     state->self->port=port;
     strcpy(state->self->ip, ip);
+    state->old->fd=-1;  //init with no old socket
+    state->SC->fd=-1;
 }
 
 /**
@@ -114,6 +114,7 @@ void closeSelf(nodeState *state, bool isLeave){
     }
     free(state->next);
     free(state->prev);
+    free(state->SC);
 }
 
 
@@ -179,6 +180,7 @@ void core(int selfKey, char *selfIP, int selfPort){
 
             else if(strcmp(option,"show") == 0 || strcmp(option,"s") == 0){
                 if(maxfd==0) exit(1);
+                
             
             }
 
@@ -196,17 +198,12 @@ void core(int selfKey, char *selfIP, int selfPort){
         }
         //new connection to tcp server
         if(FD_ISSET(serverSocketTCP,&readySockets)){
-            //need to write the rest -> basically if there is a next already close the channel and advise them of new prev
-            // if there isnt any just accept and create state vars 
             if(state->next->fd != -1){
                 state->old->fd= state->next->fd;
                 state->old->key=state->next->key;
                 state->old->port=state->next->port;
                 strcpy(state->old->ip, state->next->ip);
             }
-            //receive self and need to check if already have a next and if so if next key is higher or lower than new node 
-            // if bigger node is leaving and no need to send pred to next node just accept and change sys vars
-            // if lower means a new node is entering and must send pred with new info to B and close and update sys vars to new next
             state->next->fd=accept_connectionTCP(serverSocketTCP);
             FD_SET(state->next->fd, &currentSockets);
             maxfd=max(state->next->fd,maxfd);
@@ -233,7 +230,6 @@ void core(int selfKey, char *selfIP, int selfPort){
             if(errcode == -1){
                 closeTCP(state->next->fd);
                 FD_CLR(state->next->fd, &currentSockets);
-                free(state->next);
                 state->next->fd=-1;
             }else{
                 rcv_msg(state->next->fd, &msg, &currentSockets);

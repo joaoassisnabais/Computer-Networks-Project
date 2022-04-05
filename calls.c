@@ -29,16 +29,26 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current){
         next.key=msg->nodeKey;
         next.port=msg->port;
         strcpy(next.ip, msg->ip); 
-        initState(0, state, NULL, &next, -1, state->next->fd);
-        if(dist(state->self->key,state->old->key) > dist(state->self->key, state->next->key)) pred(state->old->fd, state->next);
+        initState(0, state, NULL, &next, -1, state->next->fd); //redundancy, there would be no need tp send fd but to have a complete function sent it anyway
+        
+        //if an old socket exists check what's closer to see if it's a node leaving or a new node entering
+        if(state->old->fd != -1){
+            if(dist(state->self->key,state->old->key) > dist(state->self->key, state->next->key)){ 
+                msgPred(state->old->fd, state->next);
+            }
+        }else{
+            strcpy(msg->command,"PRED");
+        }
     }
 
     if(strcmp(msg->command, "PRED") == 0){
         nodeInfo prev;
 
-        closeTCP(state->prev->fd);
-        FD_CLR(state->prev->fd, current);
-        free(state->prev);
+        if(state->prev->fd != -1){
+            closeTCP(state->prev->fd);
+            FD_CLR(state->prev->fd, current);
+            state->prev->fd=-1;
+        }
 
         prev.key=msg->nodeKey;
         prev.port=msg->port;
@@ -50,7 +60,10 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current){
         msgSelf(prev.fd, state->self);
     }
 
-    if(strcmp(msg->command, ""))
+    if(strcmp(msg->command, "RSP") == 0){
+
+
+    }
 }
 
 /**
@@ -73,13 +86,21 @@ void pentry(nodeState *state, char *info){
     msgSelf(prevSocket, state->self);
 }
 
+void show(nodeState *state){
+    printf("Predecessor:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->prev->key, state->prev->ip, state->prev->port);
+    printf("Successor:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->next->key, state->next->ip, state->next->port);
+    printf("Self:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->self->key, state->self->ip, state->self->port);
+    if(state->SC->fd != -1)
+        printf("Shortcut:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->SC->key, state->SC->ip, state->SC->port);
+}
+
 /**
  * @brief Messages PRED message
  * 
  * @param fd fd to write do
  * @param nextPred My next, next node's pred info
  */
-void msgpred(int fd, nodeInfo *nextPred){
+void msgPred(int fd, nodeInfo *nextPred){
     message msg;
     strcpy(msg.command, "PRED");
     strcpy(msg.ip, nextPred->ip);

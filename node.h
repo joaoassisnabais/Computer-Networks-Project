@@ -14,6 +14,7 @@ typedef struct node_state {
     nodeInfo *self;
     nodeInfo *prev;
     nodeInfo *old;
+    nodeInfo *SC;
 } nodeState;
 
 typedef struct comms_message{

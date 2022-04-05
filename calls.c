@@ -12,7 +12,7 @@
 #include "tcp.h"
 #include "calls.h"
 
-#define dist(start,end) ((end-start)%32)
+#define dist(origin,key) ((key-origin)%32)
 
 
 /**
@@ -33,7 +33,7 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current){
         
         //if an old socket exists check what's closer to see if it's a node leaving or a new node entering
         if(state->old->fd != -1){
-            if(dist(state->self->key,state->old->key) > dist(state->self->key, state->next->key)){ 
+            if(dist(state->old->key,state->self->key) > dist(state->next->key, state->self->key)){ 
                 msgPred(state->old->fd, state->next);
             }
         }else{
@@ -86,12 +86,36 @@ void pentry(nodeState *state, char *info){
     msgSelf(prevSocket, state->self);
 }
 
+/**
+ * @brief Show's state variables
+ * 
+ * @param state 
+ */
 void show(nodeState *state){
     printf("Predecessor:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->prev->key, state->prev->ip, state->prev->port);
     printf("Successor:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->next->key, state->next->ip, state->next->port);
     printf("Self:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->self->key, state->self->ip, state->self->port);
     if(state->SC->fd != -1)
         printf("Shortcut:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->SC->key, state->SC->ip, state->SC->port);
+}
+
+void find(nodeState *state, char *info, int keys[32], bool isSystemCall){
+    char* trash;
+    int k;
+
+    if(info != NULL) sscanf(info, "%s %d", trash, k);
+
+    if(dist(state->self->key,k) > dist(state->next->key, k)){
+        //send FND message to next
+    }else{
+        if(isSystemCall)
+            printf("Key %d found in node with:\n\tKey:%d \n\tIP:%s \n\tPort:%d", k, state->self->key, state->self->ip, state->self->port);
+        else{
+            
+        }
+    }
+
+
 }
 
 /**
@@ -123,3 +147,5 @@ void msgSelf(int fd, nodeInfo *self){
     msg.port=self->port;
     talkTCP(fd, &msg);
 }
+
+void msgRSP(int fd, nodeInfo)

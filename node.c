@@ -121,9 +121,10 @@ void closeSelf(nodeState *state, bool isLeave){
 void core(int selfKey, char *selfIP, int selfPort){
     char buffer[128], option[7];
     fd_set currentSockets, readySockets;
-    int serverSocketTCP, serverSocketUDP, maxfd, errcode;
+    int serverSocketTCP, serverSocketUDP, maxfd, errcode, findk[32]={};
     nodeState *state;
     message msg;
+
 
     initSelf(selfKey, selfIP, selfPort, state);
 
@@ -180,13 +181,13 @@ void core(int selfKey, char *selfIP, int selfPort){
 
             else if(strcmp(option,"show") == 0 || strcmp(option,"s") == 0){
                 if(maxfd==0) exit(1);
-                
-            
+                show(state);
             }
 
             else if(strcmp(option,"find") == 0 || strcmp(option,"f") == 0){
                 if(maxfd==0) exit(1);
 
+                
             }
 
             else if(strcmp(option,"leave") == 0 || strcmp(option,"l") == 0){

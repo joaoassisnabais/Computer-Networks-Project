@@ -37,7 +37,7 @@ int serverUDP(void){
     hints.ai_socktype= SOCK_DGRAM; //UDP socket
     hints.ai_flags=AI_PASSIVE;
 
-    errcode=getaddrinfo(NULL, "58001", &hints, res);
+    errcode=getaddrinfo(NULL, "58001", &hints, res);    //CHANGE 58001->PORT
     if(errcode!=0) exit(1); //error check
 
     errcode=bind(fd, res->ai_addr, res->ai_addrlen);

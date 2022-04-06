@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include "node.h"
+#ifndef calls_h
 #define calls_h
-//#ifndef node_h
 
 void pentry(nodeState *state, char *info);
 void rcv_msg(message *msg, nodeState *state, fd_set *current);
@@ -12,4 +12,4 @@ void msgFND(int fd, nodeInfo *node, message *msg, bool isTCP, int k);
 void show(nodeState *state);
 void find(nodeState *state, char *info, message *msg);
 
-//#endif
+#endif

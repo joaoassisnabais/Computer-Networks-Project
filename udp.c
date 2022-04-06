@@ -9,7 +9,6 @@ int clientUDP(char **hostname, char **port){
 
     struct addrinfo hints, *res;    //create addrinfo type structs to store hints and response data
     int fd, errcode;
-    ssize_t n;
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);    //open UDP socket
     if(fd == -1) exit(1);
@@ -37,7 +36,7 @@ int serverUDP(void){
     hints.ai_socktype= SOCK_DGRAM; //UDP socket
     hints.ai_flags=AI_PASSIVE;
 
-    errcode=getaddrinfo(NULL, "58001", &hints, res);    //CHANGE 58001->PORT
+    errcode=getaddrinfo(NULL, "58001", &hints, &res);    //CHANGE 58001->PORT
     if(errcode!=0) exit(1); //error check
 
     errcode=bind(fd, res->ai_addr, res->ai_addrlen);

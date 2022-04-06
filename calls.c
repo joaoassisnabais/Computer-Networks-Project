@@ -54,8 +54,8 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current){
         prev.port=msg->port;
         strcpy(prev.ip, msg->ip);
 
-        prev.fd = clientTCP(&msg->ip, msg->port);
-        initState(0, &state, &prev, NULL, prev.fd, -1);
+        prev.fd = clientTCP(msg->ip, msg->port);
+        initState(0, state, &prev, NULL, prev.fd, -1);
         FD_SET(prev.fd, current);
         msgSelf(prev.fd, state->self);
     }
@@ -72,17 +72,15 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current){
  * @param info String with the predecessors variables
  */
 void pentry(nodeState *state, char *info){
-    char* trash;
-    nodeInfo prev, next;
-    int prevSocket;
+    nodeInfo prev;
 
     if(info != NULL){
-        sscanf(info, "%s %d %s %d", trash, &prev.key, prev.ip, &prev.port);
+        sscanf(info, "%*s %d %s %d", &prev.key, prev.ip, &prev.port);
     }
-    prev.fd = clientTCP(&prev.ip, prev.port);
+    prev.fd = clientTCP(prev.ip, prev.port);
     
-    initState(0, &state, &prev, NULL, prev.fd, -1);
-    msgSelf(prevSocket, state->self);
+    initState(0, state, &prev, NULL, prev.fd, -1);
+    msgSelf(prev.fd, state->self);
 }
 
 /**
@@ -108,17 +106,14 @@ void show(nodeState *state){
  * @param findI sequence number of this call -> find function index
  */
 void find(nodeState *state, char *info, message *msg){
-    char* trash;
     int k;
     bool isSystemCall;
 
-    //system call
-    if(info != NULL){
+    if(info != NULL){   //system call
         isSystemCall=true;
-        sscanf(info, "%s %d", trash, &k);
-    }
-    //not a system call
-    else{
+        sscanf(info, "%*s %d", &k);
+    } 
+    else{   //not a system call
         isSystemCall=false;
         k=msg->searchKey;     
     }
@@ -127,14 +122,14 @@ void find(nodeState *state, char *info, message *msg){
     if(dist(state->self->key,k) > dist(state->next->key, k)){   //key isn't in self
 
         if(isSystemCall){
-            if(seq[findI] != -1) perror("Sequence number already in use");
+            if(seq[findI] != -1) perror("Sequence number already in use");  //can't do a repeated find
             seq[findI]=k;
         }
 
         //Checks if SC exists
         if(state->SC->fd != -1){
             //checks if SC is closer than next
-            if(dist(state->SC->key, k) < dist(state->next->key, k)){//SC is closer than next
+            if(dist(state->SC->key, k) < dist(state->next->key, k)){    //SC is closer than next
                 msgFND(state->SC->fd, state->self, msg, 1, k);                
             }
             msgFND(state->next->fd, state->self, msg, 0, k);        //always send message to next in case UDP message is slower                
@@ -208,7 +203,7 @@ void msgRSP(int fd, nodeInfo *node, message *msg, bool isTCP, int k){
         msg->searchKey=k;
         //msg.sequenceN = ?;
     }
-    if(isTCP) talkTCP(fd, &msg);
+    if(isTCP) talkTCP(fd, msg);
     //else talkUDP()
 }
 

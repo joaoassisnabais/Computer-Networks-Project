@@ -18,12 +18,6 @@
 //sequence numbers and find Index are global variables
 int seq[100], findI;
 
-void change_prev(nodeState *currNode, nodeInfo newNode){
-    strcmp(currNode->next->ip, newNode.ip);
-    currNode->next->key = newNode.key;
-    currNode->next->port = newNode.port;
-}
-
 /**
  * @brief Initialize UDP and TCP servers
  * 
@@ -125,7 +119,7 @@ void core(int selfKey, char *selfIP, int selfPort){
     char buffer[128], option[7];
     fd_set currentSockets, readySockets;
     int serverSocketTCP, serverSocketUDP, maxfd, errcode;
-    nodeState *state;
+    nodeState *state = NULL;
     message msg;
 
     findI=-1;
@@ -157,12 +151,12 @@ void core(int selfKey, char *selfIP, int selfPort){
 
             else if(strcmp(option,"new") == 0 || strcmp(option,"n") == 0 ){
                 maxfd=initServers(&currentSockets, &serverSocketTCP, &serverSocketUDP, maxfd, selfPort);
-                initState(1, &state, NULL, NULL, -1, -1);
+                initState(1, state, NULL, NULL, -1, -1);
             }
 
             else if(strcmp(option,"bentry") == 0 || strcmp(option,"b") == 0){
                 maxfd=initServers(&currentSockets, &serverSocketTCP, &serverSocketUDP, maxfd, selfPort);
-                initState(0, &state, NULL,  NULL, -1, -1);   //FALTA fazer isto preciso fazer find primeiro
+                initState(0, state, NULL,  NULL, -1, -1);   //FALTA fazer isto preciso fazer find primeiro
             }
 
             else if(strcmp(option,"pentry") == 0 || strcmp(option,"p") == 0){
@@ -236,7 +230,7 @@ void core(int selfKey, char *selfIP, int selfPort){
                 FD_CLR(state->next->fd, &currentSockets);
                 state->next->fd=-1;
             }else{
-                rcv_msg(state->next->fd, &msg, &currentSockets);
+                rcv_msg(&msg, state, &currentSockets);
             }
         }
         if(FD_ISSET(state->old->fd, &readySockets)){

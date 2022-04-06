@@ -21,7 +21,7 @@ int main(int argc, char **argv){
     strcpy(ip,argv[2]);
     sscanf(argv[3], "%d", &port);
 
-    core(i, &ip, port);
+    core(i, ip, port);
     
     return 0;
 }

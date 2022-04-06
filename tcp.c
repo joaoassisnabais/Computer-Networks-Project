@@ -10,8 +10,8 @@
 
 int clientTCP(char *serverIP, int serverPort){
     struct addrinfo hints, *res;
-    int fd, n, errcode;
-    char buffer[128], strPort[8];
+    int fd, errcode;
+    char strPort[8];
 
     fd=socket(AF_INET, SOCK_STREAM, 0);
     if(fd==-1){perror("TCP client fd"); exit(1);}
@@ -20,7 +20,8 @@ int clientTCP(char *serverIP, int serverPort){
     hints.ai_family = AF_INET ;         //IPv4
     hints.ai_socktype = SOCK_STREAM;    //TCP socket
 
-    itoa(serverPort, strPort, 10);
+    //itoa(serverPort, strPort, 10);
+    sprintf(strPort,"%d",serverPort);
     errcode=getaddrinfo(NULL, strPort, &hints, &res);
     if(errcode!=0){perror("TCP client getaddrinfo"); exit(1);}
 
@@ -33,17 +34,18 @@ int clientTCP(char *serverIP, int serverPort){
 
 int serverTCP(int port){
     struct addrinfo hints, *res;
-    int fd, newfd, errcode;
-    char buffer[128], strPort[8];
+    int fd, errcode;
+    char strPort[8];
 
-    if((fd==socket(AF_INET, SOCK_STREAM, 0) == -1)) exit(1);
+    if((fd=socket(AF_INET, SOCK_STREAM, 0)) == -1) exit(1);
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET ;         //IPv4
     hints.ai_socktype = SOCK_STREAM;    //TCP socket
     hints.ai_flags = AI_PASSIVE;
 
-    itoa(port, strPort, 10);
+    //itoa(port, strPort, 10);
+    sprintf(strPort,"%d",port);
     if((errcode=getaddrinfo(NULL, strPort, &hints, &res))!= 0) exit(1);
 
     if(bind(fd, res->ai_addr,res->ai_addrlen) == -1) exit(1);
@@ -86,7 +88,7 @@ int readTCP(int fd, message *msg){
     nread=read(fd, &buffer, 128);
     
     //session closed by the other end
-    if(read == 0){ 
+    if(nread == 0){ 
         return -1;
     }
     else{

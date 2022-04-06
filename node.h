@@ -1,6 +1,6 @@
 #include <stdbool.h>
+#ifndef node_h
 #define node_h
-//#ifndef node_h
 
 extern int seq[100], findI;
 
@@ -31,4 +31,4 @@ typedef struct comms_message{
 void core(int selfKey, char *IP, int selfPort);
 void initState(bool isNew, nodeState *state, nodeInfo *prev, nodeInfo *next, int pfd, int nfd);
 
-//#endif
+#endif

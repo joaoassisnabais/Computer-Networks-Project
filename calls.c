@@ -99,19 +99,28 @@ void show(nodeState *state){
         printf("Shortcut:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->SC->key, state->SC->ip, state->SC->port);
 }
 
-void find(nodeState *state, char *info, int keys[32], bool isSystemCall){
+void find(nodeState *state, char *info, message *msg, int keys[32], bool isSystemCall){
     char* trash;
     int k;
 
     if(info != NULL) sscanf(info, "%s %d", trash, k);
+    if(msg != NULL) k=msg->nodeKey;
 
     if(dist(state->self->key,k) > dist(state->next->key, k)){
         //send FND message to next
     }else{
-        if(isSystemCall)
+        if(isSystemCall){
             printf("Key %d found in node with:\n\tKey:%d \n\tIP:%s \n\tPort:%d", k, state->self->key, state->self->ip, state->self->port);
-        else{
-            
+        }else{
+            //send RSP message to next or SC
+            if(state->SC->fd != -1){
+                if(dist(state->SC->key, k) < dist(state->next->key, k)){
+                    //Send RSP to SC and begin (still need to create) timeout protocol until i receive an ACK and send to next
+                }else{
+                    msgRSP()
+
+                }
+            }
         }
     }
 
@@ -148,4 +157,19 @@ void msgSelf(int fd, nodeInfo *self){
     talkTCP(fd, &msg);
 }
 
-void msgRSP(int fd, nodeInfo)
+/**
+ * @brief 
+ * 
+ * @param fd 
+ * @param node Information of the node 
+ * @param isTCP Is it done trough TCP or UDP protocol
+ */
+void msgRSP(int fd, nodeInfo *node, bool isTCP){
+    message msg;
+    strcpy(msg.command,"RSP");
+    strcpy(msg.ip, node->ip);
+    msg.port=node->port;
+    msg.nodeKey=node->key;
+    if(isTCP) talkTCP(fd, &msg);
+    else //talkUDP()
+}

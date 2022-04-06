@@ -19,8 +19,9 @@ typedef struct node_state {
 
 typedef struct comms_message{
     char command[6];
-    int nodeKey;    //used as k, pred and i
+    int nodeKey;    //key from sending node
     int sequenceN;
+    int searchKey;  //key to search
     char ip[16];
     int port;
 } message;

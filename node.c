@@ -223,11 +223,9 @@ void core(int selfKey, char *selfIP, int selfPort){
 
         }
         if(FD_ISSET(state->next->fd, &readySockets)){
-            //if its a self need to check if node key from next is bigger than old 
-            //if next > old do nothing and expect fin
-            //if old > next send pred to old and expect a FIN
             errcode = readTCP(state->next->fd, &msg);
-            //this means other end has closed the session
+            
+            //Other end has closed the session
             if(errcode == -1){
                 closeTCP(state->next->fd);
                 FD_CLR(state->next->fd, &currentSockets);

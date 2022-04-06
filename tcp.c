@@ -90,7 +90,9 @@ int readTCP(int fd, message *msg){
         return -1;
     }
     else{
-        sscanf(buffer,"%s %d %s %s", msg->command, msg->nodeKey, msg->ip, msg->port);
+        if(strcmp(msg->command, "PRED") || strcmp(msg->command, "EPRED") || strcmp(msg->command, "SELF")){
+            sscanf(buffer,"%s %d %s %s", msg->command, msg->nodeKey, msg->ip, msg->port);   
+        }
         return 0;
     }
 }

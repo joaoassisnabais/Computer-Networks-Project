@@ -92,9 +92,9 @@ void pentry(nodeState *state, char *info){
  * @param state 
  */
 void show(nodeState *state){
-    printf("Predecessor:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->prev->key, state->prev->ip, state->prev->port);
-    printf("Successor:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->next->key, state->next->ip, state->next->port);
-    printf("Self:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->self->key, state->self->ip, state->self->port);
+    printf("\nPredecessor:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->prev->key, state->prev->ip, state->prev->port);
+    printf("\nSuccessor:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->next->key, state->next->ip, state->next->port);
+    printf("\nSelf:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->self->key, state->self->ip, state->self->port);
     if(state->SC->fd != -1)
         printf("Shortcut:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->SC->key, state->SC->ip, state->SC->port);
 }
@@ -103,25 +103,31 @@ void find(nodeState *state, char *info, message *msg, int keys[32], bool isSyste
     char* trash;
     int k;
 
-    if(info != NULL) sscanf(info, "%s %d", trash, k);
-    if(msg != NULL) k=msg->nodeKey;
+    if(info != NULL) sscanf(info, "%s %d", trash, k);   //system call
+    if(msg != NULL) k=msg->searchKey;                   //not system call
 
-    if(dist(state->self->key,k) > dist(state->next->key, k)){
-        //send FND message to next
-    }else{
-        if(isSystemCall){
-            printf("Key %d found in node with:\n\tKey:%d \n\tIP:%s \n\tPort:%d", k, state->self->key, state->self->ip, state->self->port);
-        }else{
-            //send RSP message to next or SC
-            if(state->SC->fd != -1){
-                if(dist(state->SC->key, k) < dist(state->next->key, k)){
-                    //Send RSP to SC and begin (still need to create) timeout protocol until i receive an ACK and send to next
-                }else{
-                    msgRSP()
+    if(dist(state->self->key,k) > dist(state->next->key, k)){   //if k key isn't in self
 
+        if(state->SC->fd != -1){
+            //check if SC is closer than next
+            if(dist(state->SC->key, k) < dist(state->next->key, k)){    //SC is closer than next
+                msgFND(state->SC->fd, state->self, msg, 1, k);                
+            }
+            msgFND(state->next->fd, state->self, msg, 0, k);    //always send message to next in case UDP message is slower
+            
+            
+        }else{  //if key is in self
+            if(isSystemCall){
+                printf("Key %d found in node with:\n\tKey:%d \n\tIP:%s \n\tPort:%d", k, state->self->key, state->self->ip, state->self->port);
+            }else{
+                //check if SC is closer than next
+                if(state->SC->fd != -1){
+                    if(dist(state->SC->key, k) < dist(state->next->key, k)){
+                        msgRSP(state->next->fd, state->next, 1, k);
+                    }
+                    msgRSP(state->next->fd, state->next, 1, k); //always send message to next in case UDP message is slower
                 }
             }
-        }
     }
 
 
@@ -164,12 +170,30 @@ void msgSelf(int fd, nodeInfo *self){
  * @param node Information of the node 
  * @param isTCP Is it done trough TCP or UDP protocol
  */
-void msgRSP(int fd, nodeInfo *node, bool isTCP){
+void msgRSP(int fd, nodeInfo *node, bool isTCP, int k){
     message msg;
     strcpy(msg.command,"RSP");
     strcpy(msg.ip, node->ip);
     msg.port=node->port;
     msg.nodeKey=node->key;
+    msg.searchKey=k;
     if(isTCP) talkTCP(fd, &msg);
-    else //talkUDP()
+    //else //talkUDP()
+}
+
+void msgFND(int fd, nodeInfo *node, message *msg, bool isTCP, int k){
+    if(msg == NULL) {    //system call
+        message aux;
+        msg = &aux;     //create msg struct with system call inputs
+
+        strcpy(msg.command,"FND");
+        strcpy(msg.ip, node->ip);
+        msg.port=node->port;
+        msg.nodeKey=node->key;
+        msg.searchKey=k;
+        //msg.sequenceN = ?;
+    }
+
+    if(isTCP) talkTCP(fd, msg);
+    //else //talkUDP()
 }

@@ -112,6 +112,10 @@ void talkTCP(int fd, message *msg){
         sprintf(str, "%s %d %s %d\n", msg->command, msg->nodeKey, msg->ip, msg->port);
         errcode=write(fd,str,sizeof(str));
     }
+    if(strcmp(msg->command, "FND") || strcmp(msg->command, "RSP")){
+        sprintf(str, "%s %d %d %d %s %d\n", msg->command, msg->searchKey, msg->sequenceN, msg->nodeKey, msg->ip, msg->port);
+        errcode=write(fd,str,sizeof(str));
+    }
 
     if(errcode==-1){perror("write failed"); exit(1);}
     if(errcode<sizeof(str)){perror("write didn't write the whole message"); exit(1);}

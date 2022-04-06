@@ -170,22 +170,22 @@ void core(int selfKey, char *selfIP, int selfPort){
             }
 
             else if(strcmp(option,"chord") == 0 || strcmp(option,"c") == 0){
-                if(maxfd==0) exit(1);
+                if(maxfd==0) exit(1);   //cant be done without initialized ring
                  
             }
 
             else if(strcmp(option,"dchord") == 0 || strcmp(option,"echord") == 0 || strcmp(option,"d")){
-                if(maxfd==0) exit(1);
+                if(maxfd==0) exit(1);   //cant be done without initialized ring
 
             }
 
             else if(strcmp(option,"show") == 0 || strcmp(option,"s") == 0){
-                if(maxfd==0) exit(1);
+                if(maxfd==0) exit(1);   //cant be done without initialized ring
                 show(state);
             }
 
             else if(strcmp(option,"find") == 0 || strcmp(option,"f") == 0){
-                if(maxfd==0) exit(1);
+                if(maxfd==0) exit(1);   //cant be done without initialized ring
 
                 
             }

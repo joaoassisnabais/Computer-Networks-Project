@@ -2,6 +2,8 @@
 #define node_h
 //#ifndef node_h
 
+extern int seq[100], findI;
+
 typedef struct node_info {
     int key;
     char ip[16];

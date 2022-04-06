@@ -15,6 +15,9 @@
 #define dist(start,end) ((end-start)%32)
 #define max(A,B) ((A)>=(B)?(A):(B))
 
+//sequence numbers and find Index are global variables
+int seq[100], findI;
+
 void change_prev(nodeState *currNode, nodeInfo newNode){
     strcmp(currNode->next->ip, newNode.ip);
     currNode->next->key = newNode.key;
@@ -121,11 +124,11 @@ void closeSelf(nodeState *state, bool isLeave){
 void core(int selfKey, char *selfIP, int selfPort){
     char buffer[128], option[7];
     fd_set currentSockets, readySockets;
-    int serverSocketTCP, serverSocketUDP, maxfd, errcode, findk[32]={};
+    int serverSocketTCP, serverSocketUDP, maxfd, errcode;
     nodeState *state;
     message msg;
 
-
+    findI=-1;
     initSelf(selfKey, selfIP, selfPort, state);
 
     //init current set
@@ -186,7 +189,9 @@ void core(int selfKey, char *selfIP, int selfPort){
 
             else if(strcmp(option,"find") == 0 || strcmp(option,"f") == 0){
                 if(maxfd==0) exit(1);   //cant be done without initialized ring
-
+                if(findI==99) findI=-1;
+                findI+=1;
+                find(state, buffer, NULL);
                 
             }
 

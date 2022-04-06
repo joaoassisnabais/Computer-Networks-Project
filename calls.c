@@ -60,9 +60,8 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current){
         msgSelf(prev.fd, state->self);
     }
 
-    if(strcmp(msg->command, "RSP") == 0){
-
-
+    if(strcmp(msg->command, "FND") == 0){
+        find(state, NULL, msg);
     }
 }
 
@@ -78,7 +77,7 @@ void pentry(nodeState *state, char *info){
     int prevSocket;
 
     if(info != NULL){
-        sscanf(info, "%s %d %s %d", trash, prev.key, prev.ip, prev.port);
+        sscanf(info, "%s %d %s %d", trash, &prev.key, prev.ip, &prev.port);
     }
     prev.fd = clientTCP(&prev.ip, prev.port);
     
@@ -99,44 +98,69 @@ void show(nodeState *state){
         printf("Shortcut:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->SC->key, state->SC->ip, state->SC->port);
 }
 
-void find(nodeState *state, char *info, message *msg, int keys[32], bool isSystemCall){
+/**
+ * @brief checks if self has the key and responds apropriately
+ * 
+ * @param state State Variables
+ * @param info if function is called by user it's the buffer from stdin
+ * @param msg if FND msg is received this is that message
+ * @param seq stores sequence numbers to keep track of requests
+ * @param findI sequence number of this call -> find function index
+ */
+void find(nodeState *state, char *info, message *msg){
     char* trash;
     int k;
+    bool isSystemCall;
 
-    if(info != NULL) sscanf(info, "%s %d", trash, k);   //system call
-    if(msg != NULL) k=msg->searchKey;                   //not system call
-
-    if(dist(state->self->key,k) > dist(state->next->key, k)){   //if k key isn't in self
-
-        if(state->SC->fd != -1){
-            //check if SC is closer than next
-            if(dist(state->SC->key, k) < dist(state->next->key, k)){    //SC is closer than next
-                msgFND(state->SC->fd, state->self, msg, 1, k);                
-            }
-            msgFND(state->next->fd, state->self, msg, 0, k);    //always send message to next in case UDP message is slower
-            
-            
-        }else{  //if key is in self
-            if(isSystemCall){
-                printf("Key %d found in node with:\n\tKey:%d \n\tIP:%s \n\tPort:%d", k, state->self->key, state->self->ip, state->self->port);
-            }else{
-                //check if SC is closer than next
-                if(state->SC->fd != -1){
-                    if(dist(state->SC->key, k) < dist(state->next->key, k)){
-                        msgRSP(state->next->fd, state->next, 1, k);
-                    }
-                    msgRSP(state->next->fd, state->next, 1, k); //always send message to next in case UDP message is slower
-                }
-            }
+    //system call
+    if(info != NULL){
+        isSystemCall=true;
+        sscanf(info, "%s %d", trash, &k);
+    }
+    //not a system call
+    else{
+        isSystemCall=false;
+        k=msg->searchKey;     
     }
 
+    //Checks if k key is in self
+    if(dist(state->self->key,k) > dist(state->next->key, k)){   //key isn't in self
 
+        if(isSystemCall){
+            if(seq[findI] != -1) perror("Sequence number already in use");
+            seq[findI]=k;
+        }
+
+        //Checks if SC exists
+        if(state->SC->fd != -1){
+            //checks if SC is closer than next
+            if(dist(state->SC->key, k) < dist(state->next->key, k)){//SC is closer than next
+                msgFND(state->SC->fd, state->self, msg, 1, k);                
+            }
+            msgFND(state->next->fd, state->self, msg, 0, k);        //always send message to next in case UDP message is slower                
+        }
+    }
+    //key is in self
+    else{
+        if(isSystemCall){
+            printf("Key %d found in node with:\n\tKey:%d \n\tIP:%s \n\tPort:%d", k, state->self->key, state->self->ip, state->self->port);
+        }else{
+            //check if SC is closer than next
+            if(state->SC->fd != -1){
+                if(dist(state->SC->key, k) < dist(state->next->key, k)){
+                    msgRSP(state->SC->fd, state->self, msg, 1, msg->nodeKey);
+                }
+                msgRSP(state->next->fd, state->self, msg, 1, msg->nodeKey); //always send message to next in case UDP message is slower
+            }
+        }
+    }
 }
 
+
 /**
- * @brief Messages PRED message
+ * @brief Sends PRED message
  * 
- * @param fd fd to write do
+ * @param fd File descriptor to write to
  * @param nextPred My next, next node's pred info
  */
 void msgPred(int fd, nodeInfo *nextPred){
@@ -149,9 +173,9 @@ void msgPred(int fd, nodeInfo *nextPred){
 }
 
 /**
- * @brief Messages SELF message
+ * @brief Sends SELF message
  * 
- * @param fd fd to write do
+ * @param fd File descriptor to write to
  * @param self My variables
  */
 void msgSelf(int fd, nodeInfo *self){
@@ -164,36 +188,52 @@ void msgSelf(int fd, nodeInfo *self){
 }
 
 /**
- * @brief 
+ * @brief Sends RSP message
  * 
- * @param fd 
- * @param node Information of the node 
- * @param isTCP Is it done trough TCP or UDP protocol
+ * @param fd File descriptor to write to
+ * @param node Node information to fill in RSP
+ * @param msg In case I just need to resend the message 
+ * @param isTCP If it's sent to the shortcut or to the next node
+ * @param k key from the node that asked for it
  */
-void msgRSP(int fd, nodeInfo *node, bool isTCP, int k){
-    message msg;
-    strcpy(msg.command,"RSP");
-    strcpy(msg.ip, node->ip);
-    msg.port=node->port;
-    msg.nodeKey=node->key;
-    msg.searchKey=k;
+void msgRSP(int fd, nodeInfo *node, message *msg, bool isTCP, int k){
+   if(msg == NULL) {    //system call
+        message aux;
+        msg = &aux;     //create msg struct with system call inputs
+
+        strcpy(msg->command,"RSP");
+        strcpy(msg->ip, node->ip);
+        msg->port=node->port;
+        msg->nodeKey=node->key;
+        msg->searchKey=k;
+        //msg.sequenceN = ?;
+    }
     if(isTCP) talkTCP(fd, &msg);
-    //else //talkUDP()
+    //else talkUDP()
 }
 
+/**
+ * @brief Sends FND message
+ * 
+ * @param fd File descriptor to write to
+ * @param node Node information to fill in RSP
+ * @param msg In case I just need to resend the message 
+ * @param isTCP If it's sent to the shortcut or to the next node
+ * @param k key to be found
+ */
 void msgFND(int fd, nodeInfo *node, message *msg, bool isTCP, int k){
     if(msg == NULL) {    //system call
         message aux;
         msg = &aux;     //create msg struct with system call inputs
 
-        strcpy(msg.command,"FND");
-        strcpy(msg.ip, node->ip);
-        msg.port=node->port;
-        msg.nodeKey=node->key;
-        msg.searchKey=k;
+        strcpy(msg->command,"FND");
+        strcpy(msg->ip, node->ip);
+        msg->port=node->port;
+        msg->nodeKey=node->key;
+        msg->searchKey=k;
         //msg.sequenceN = ?;
     }
 
     if(isTCP) talkTCP(fd, msg);
-    //else //talkUDP()
+    //else talkUDP()
 }

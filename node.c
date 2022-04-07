@@ -83,18 +83,18 @@ void initState(bool isNew, nodeState *state, nodeInfo *prev, nodeInfo *next, int
  * @param port self port
  * @param state struct with state variables
  */
-void initSelf(int k, char *ip, int port, nodeState *state){
-    state=(nodeState*)malloc(sizeof(nodeState));
-    state->self=(nodeInfo*)malloc(sizeof(nodeInfo));
-    state->old=(nodeInfo*)malloc(sizeof(nodeInfo));
-    state->next=(nodeInfo*)malloc(sizeof(nodeInfo));
-    state->prev=(nodeInfo*)malloc(sizeof(nodeInfo));
-    state->SC=(nodeInfo*)malloc(sizeof(nodeInfo));
-    state->self->key=k;
-    state->self->port=port;
-    strcpy(state->self->ip, ip);
-    state->old->fd=-1;  //init with no old socket
-    state->SC->fd=-1;
+void initSelf(int k, char *ip, int port, nodeState **state){
+    *state=(nodeState*)malloc(sizeof(nodeState));
+    (*state)->self=(nodeInfo*)malloc(sizeof(nodeInfo));
+    (*state)->old=(nodeInfo*)malloc(sizeof(nodeInfo));
+    (*state)->next=(nodeInfo*)malloc(sizeof(nodeInfo));
+    (*state)->prev=(nodeInfo*)malloc(sizeof(nodeInfo));
+    (*state)->SC=(nodeInfo*)malloc(sizeof(nodeInfo));
+    (*state)->self->key=k;
+    (*state)->self->port=port;
+    strcpy((*state)->self->ip, ip);
+    (*state)->old->fd=-1;  //init with no old socket
+    (*state)->SC->fd=-1;
 }
 
 /**
@@ -104,14 +104,14 @@ void initSelf(int k, char *ip, int port, nodeState *state){
  * @param isLeave Is or not coming from leave command
  */
 void closeSelf(nodeState *state, bool isLeave){
+    free(state->next);
+    free(state->prev);
+    free(state->SC);
     if(!isLeave){
         free(state->self);
         free(state->old);
         free(state);
     }
-    free(state->next);
-    free(state->prev);
-    free(state->SC);
 }
 
 
@@ -123,7 +123,7 @@ void core(int selfKey, char *selfIP, int selfPort){
     message msg;
 
     findI=-1;
-    initSelf(selfKey, selfIP, selfPort, state);
+    initSelf(selfKey, selfIP, selfPort, &state);
 
     //init current set
     FD_ZERO(&currentSockets);

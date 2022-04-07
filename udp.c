@@ -20,6 +20,8 @@ int clientUDP(char **hostname, char **port){
     errcode = getaddrinfo(*hostname, *port, &hints, &res);
     if(errcode != 0) exit(1);
 
+    freeaddrinfo(res);
+
     return 0;
 }
 
@@ -41,6 +43,8 @@ int serverUDP(void){
 
     errcode=bind(fd, res->ai_addr, res->ai_addrlen);
     if(errcode==-1) exit(1); //error check
+
+    freeaddrinfo(res);
     
     return fd;
 }

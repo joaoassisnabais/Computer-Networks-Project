@@ -143,7 +143,7 @@ void core(int selfKey, char *selfIP, int selfPort){
             if(sscanf(buffer,"%s", option) != 1) exit(1);
             
             if(strcmp(option,"exit") == 0 || strcmp(option,"e") == 0){
-                printf("User input for exit\n Exiting...\n");
+                printf("User input for exit \nExiting...\n");
                 closeSelf(state,0);
                 exit(0);
                 //free whatever
@@ -171,7 +171,7 @@ void core(int selfKey, char *selfIP, int selfPort){
                  
             }
 
-            else if(strcmp(option,"dchord") == 0 || strcmp(option,"echord") == 0 || strcmp(option,"d")){
+            else if(strcmp(option,"dchord") == 0 || strcmp(option,"echord") == 0 || strcmp(option,"d") == 0){
                 if(maxfd==0) exit(1);   //cant be done without initialized ring
 
             }

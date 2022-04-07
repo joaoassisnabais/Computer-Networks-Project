@@ -28,6 +28,8 @@ int clientTCP(char *serverIP, int serverPort){
     errcode=connect(fd, res->ai_addr, res->ai_addrlen);
     if(errcode==-1){perror("TCP client connect"); exit(1);}
 
+    freeaddrinfo(res);
+
     return fd;
 }
 
@@ -51,6 +53,8 @@ int serverTCP(int port){
     if(bind(fd, res->ai_addr,res->ai_addrlen) == -1) exit(1);
 
     if(listen(fd, 5) == -1) exit(1);
+
+    freeaddrinfo(res);
 
     return fd;
 }

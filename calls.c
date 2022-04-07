@@ -24,11 +24,17 @@
 void rcv_msg(message *msg, nodeState *state, fd_set *current){
 
     if(strcmp(msg->command, "SELF") == 0){
-        printf("\nReceived Self from node %d\n", msg->nodeKey);
+        printf("\nReceived Self from node %d with Port: %d and IP: %s", msg->nodeKey, msg->port, msg->ip);
         nodeInfo next;
         next.key=msg->nodeKey;
         next.port=msg->port;
-        strcpy(next.ip, msg->ip); 
+        strcpy(next.ip, msg->ip);
+        
+        //checks if it's the node is alone in the ring
+        if(state->next->key==state->self->key){
+            strcpy(msg->command,"PRED");
+        }
+
         initState(0, state, NULL, &next, -1, state->next->fd); //redundancy in fd, there would be no need tp send fd but to have a complete function sent it anyway
         
         //if an old socket exists check what's closer to see if it's a node leaving or a new node entering
@@ -36,8 +42,6 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current){
             if(dist(state->old->key,state->self->key) > dist(state->next->key, state->self->key)){ 
                 msgPred(state->old->fd, state->next);
             }
-        }else{  //need to see if there is only one
-            strcpy(msg->command,"PRED");
         }
     }
 

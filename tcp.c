@@ -22,7 +22,7 @@ int clientTCP(char *serverIP, int serverPort){
 
     //itoa(serverPort, strPort, 10);
     sprintf(strPort,"%d",serverPort);
-    printf("Port: %s \nIP: %s\n", strPort, serverIP);
+    printf("\nPort: %s \nIP: %s\n", strPort, serverIP);
     errcode=getaddrinfo(serverIP, strPort, &hints, &res);
     if(errcode!=0){
         perror("TCP client getaddrinfo"); 

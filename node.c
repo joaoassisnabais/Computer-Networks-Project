@@ -142,8 +142,9 @@ void core(int selfKey, char *selfIP, int selfPort){
     maxfd=0;
 
     while(1){
-        readySockets=currentSockets;
-
+        FD_ZERO(&readySockets);
+        memcpy(&readySockets,&currentSockets,sizeof(currentSockets));
+        
         if(select(maxfd+1, &readySockets, NULL, NULL, NULL) < 0) exit(1);
 
         //checking what sockets are set

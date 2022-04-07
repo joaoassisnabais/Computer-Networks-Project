@@ -20,7 +20,7 @@ int clientTalkUDP(char **hostname, char *port){
     hints.ai_family = AF_INET;  //IPv4
     hints.ai_socktype = SOCK_DGRAM; //UDP socket
 
-    errcode = getaddrinfo(*hostname, *port, &hints, &res);
+    errcode = getaddrinfo(*hostname, port, &hints, &res);
     if(errcode != 0) exit(1);
 
     freeaddrinfo(res);

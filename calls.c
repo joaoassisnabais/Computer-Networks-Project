@@ -14,7 +14,6 @@
 
 #define dist(origin,key) ((key-origin)%32)
 
-
 /**
  * @brief Receives a message and decides what to do with it (message control)
  * 
@@ -25,18 +24,19 @@
 void rcv_msg(message *msg, nodeState *state, fd_set *current){
 
     if(strcmp(msg->command, "SELF") == 0){
+        printf("\nReceived Self from node %d\n", msg->nodeKey);
         nodeInfo next;
         next.key=msg->nodeKey;
         next.port=msg->port;
         strcpy(next.ip, msg->ip); 
-        initState(0, state, NULL, &next, -1, state->next->fd); //redundancy, there would be no need tp send fd but to have a complete function sent it anyway
+        initState(0, state, NULL, &next, -1, state->next->fd); //redundancy in fd, there would be no need tp send fd but to have a complete function sent it anyway
         
         //if an old socket exists check what's closer to see if it's a node leaving or a new node entering
         if(state->old->fd != -1){
             if(dist(state->old->key,state->self->key) > dist(state->next->key, state->self->key)){ 
                 msgPred(state->old->fd, state->next);
             }
-        }else{
+        }else{  //need to see if there is only one
             strcpy(msg->command,"PRED");
         }
     }
@@ -62,6 +62,24 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current){
 
     if(strcmp(msg->command, "FND") == 0){
         find(state, NULL, msg);
+    }
+
+    if(strcmp(msg->command, "RSP") == 0){
+
+        //See if the RSP is for me        
+        if(msg->searchKey == state->self->key){   //It's for me
+            if(seq[msg->sequenceN] != -1){
+                printf("\nFound Key:%d in node with: \n\tKey:%d \n\tIP:%s \n\tPort:%d",seq[msg->sequenceN], msg->nodeKey, msg->ip, msg->port);
+                seq[msg->sequenceN] = -1;
+            }
+        }else{  //It's not for me
+            //Checks if SC is closer
+            if(dist(state->SC->key, msg->searchKey) < dist(state->next->key, msg->searchKey)){  //SC is closer
+                msgRSP(state->SC->fd, NULL, msg, 0, -1);
+            }
+            msgRSP(state->next->fd, NULL, msg, 1, -1);
+        }
+
     }
 }
 
@@ -91,7 +109,7 @@ void pentry(nodeState *state, char *info){
 void show(nodeState *state){
     printf("\nPredecessor:\n\tKey:%d \n\tIP:%s \n\tPort:%d", state->prev->key, state->prev->ip, state->prev->port);
     printf("\nSuccessor:\n\tKey:%d \n\tIP:%s \n\tPort:%d", state->next->key, state->next->ip, state->next->port);
-    printf("\nSelf:\n\tKey:%d \n\tIP:%s \n\tPort:%d", state->self->key, state->self->ip, state->self->port);
+    printf("\nSelf:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", state->self->key, state->self->ip, state->self->port);
     if(state->SC->fd != -1)
         printf("Shortcut:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->SC->key, state->SC->ip, state->SC->port);
 }

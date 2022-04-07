@@ -11,7 +11,7 @@
 int clientTCP(char *serverIP, int serverPort){
     struct addrinfo hints, *res;
     int fd, errcode;
-    char strPort[8];
+    char strPort[32];
 
     fd=socket(AF_INET, SOCK_STREAM, 0);
     if(fd==-1){perror("TCP client fd"); exit(1);}
@@ -22,11 +22,19 @@ int clientTCP(char *serverIP, int serverPort){
 
     //itoa(serverPort, strPort, 10);
     sprintf(strPort,"%d",serverPort);
-    errcode=getaddrinfo(NULL, strPort, &hints, &res);
-    if(errcode!=0){perror("TCP client getaddrinfo"); exit(1);}
+    printf("Port: %s \nIP: %s\n", strPort, serverIP);
+    errcode=getaddrinfo(serverIP, strPort, &hints, &res);
+    if(errcode!=0){
+        perror("TCP client getaddrinfo"); 
+        exit(1);
+    }
 
     errcode=connect(fd, res->ai_addr, res->ai_addrlen);
-    if(errcode==-1){perror("TCP client connect"); exit(1);}
+    printf("errcode in client connect = %d",errcode);
+    if(errcode==-1){
+        perror("TCP client connect"); 
+        exit(1);
+    }
 
     freeaddrinfo(res);
 
@@ -34,7 +42,7 @@ int clientTCP(char *serverIP, int serverPort){
 }
 
 
-int serverTCP(int port){
+int serverTCP(char *IP, int port){
     struct addrinfo hints, *res;
     int fd, errcode;
     char strPort[8];
@@ -48,7 +56,7 @@ int serverTCP(int port){
 
     //itoa(port, strPort, 10);
     sprintf(strPort,"%d",port);
-    if((errcode=getaddrinfo(NULL, strPort, &hints, &res))!= 0) exit(1);
+    if((errcode=getaddrinfo(IP, strPort, &hints, &res))!= 0) exit(1);
 
     if(bind(fd, res->ai_addr,res->ai_addrlen) == -1) exit(1);
 

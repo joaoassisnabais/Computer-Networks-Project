@@ -19,6 +19,16 @@
 int seq[100], findI;
 
 /**
+ * @brief Initializes sequence with -1 in every index
+ * 
+ * @param seq Sequence number vector
+ */
+void initSeq(void){
+    for(int i=0; i<100; i++) seq[i]=-1;
+}
+
+
+/**
  * @brief Initialize UDP and TCP servers
  * 
  * @param current current fd_set
@@ -28,9 +38,9 @@ int seq[100], findI;
  * @param port port to open up the servers
  * @return maxfd
  */
-int initServers(fd_set *current, int *TCP, int *UDP, int maxfd, int port){
-    *TCP=serverTCP(port);
-    *UDP=serverUDP();
+int initServers(fd_set *current, int *TCP, int *UDP, int maxfd, nodeState *state){
+    *TCP=serverTCP(state->self->ip, state->self->port);
+    *UDP=serverUDP(state->self->ip, state->self->port);
     FD_SET(*TCP, current);
     FD_SET(*UDP, current);
     maxfd=max(maxfd, *TCP);
@@ -67,8 +77,8 @@ void initState(bool isNew, nodeState *state, nodeInfo *prev, nodeInfo *next, int
             state->prev->fd=pfd;      
         }
         if(next!=NULL){
-            state->next->key=prev->key;
-            state->next->port=prev->port;
+            state->next->key=next->key;
+            state->next->port=next->port;
             strcpy(state->next->ip, next->ip);
             state->next->fd=nfd;
         }
@@ -123,6 +133,7 @@ void core(int selfKey, char *selfIP, int selfPort){
     message msg;
 
     findI=-1;
+    initSeq();
     initSelf(selfKey, selfIP, selfPort, &state);
 
     //init current set
@@ -141,26 +152,19 @@ void core(int selfKey, char *selfIP, int selfPort){
             strcpy(buffer,"");
             fgets(buffer, 128, stdin);
             if(sscanf(buffer,"%s", option) != 1) exit(1);
-            
-            if(strcmp(option,"exit") == 0 || strcmp(option,"e") == 0){
-                printf("User input for exit \nExiting...\n");
-                closeSelf(state,0);
-                exit(0);
-                //free whatever
-            }
 
-            else if(strcmp(option,"new") == 0 || strcmp(option,"n") == 0 ){
-                maxfd=initServers(&currentSockets, &serverSocketTCP, &serverSocketUDP, maxfd, selfPort);
+            if(strcmp(option,"new") == 0 || strcmp(option,"n") == 0 ){
+                maxfd=initServers(&currentSockets, &serverSocketTCP, &serverSocketUDP, maxfd, state);
                 initState(1, state, NULL, NULL, -1, -1);
             }
 
             else if(strcmp(option,"bentry") == 0 || strcmp(option,"b") == 0){
-                maxfd=initServers(&currentSockets, &serverSocketTCP, &serverSocketUDP, maxfd, selfPort);
+                maxfd=initServers(&currentSockets, &serverSocketTCP, &serverSocketUDP, maxfd, state);
                 initState(0, state, NULL,  NULL, -1, -1);   //FALTA fazer isto preciso fazer find primeiro
             }
 
             else if(strcmp(option,"pentry") == 0 || strcmp(option,"p") == 0){
-                maxfd=initServers(&currentSockets, &serverSocketTCP, &serverSocketUDP, maxfd, selfPort);
+                maxfd=initServers(&currentSockets, &serverSocketTCP, &serverSocketUDP, maxfd, state);
                 pentry(state, buffer);
                 FD_SET(state->prev->fd, &currentSockets);
                 maxfd=max(state->prev->fd,  maxfd);
@@ -194,6 +198,13 @@ void core(int selfKey, char *selfIP, int selfPort){
                 else closeSelf(state, 1);
                 //free whatever
 
+            }
+
+            else if(strcmp(option,"exit") == 0 || strcmp(option,"e") == 0){
+                printf("\nExiting...\n");
+                closeSelf(state,0);
+                exit(0);
+                //free whatever
             }
         }
         //new connection to tcp server

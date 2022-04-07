@@ -2,7 +2,7 @@
 #ifndef tcp_h
 #define tcp_h
 
-int serverTCP(int port);
+int serverTCP(char *IP, int port);
 int accept_connectionTCP(int fd);
 int clientTCP(char *serverIP, int serverPort);
 int readTCP(int fd, message *msg);

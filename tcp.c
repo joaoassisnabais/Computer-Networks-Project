@@ -122,11 +122,11 @@ void talkTCP(int fd, message *msg){
     int errcode=0;
     char str[128];
 
-    if(strcmp(msg->command, "PRED") || strcmp(msg->command, "EPRED") || strcmp(msg->command, "SELF")){
+    if(strcmp(msg->command, "PRED") == 0 || strcmp(msg->command, "EPRED") == 0 || strcmp(msg->command, "SELF") == 0){
         sprintf(str, "%s %d %s %d\n", msg->command, msg->nodeKey, msg->ip, msg->port);
         errcode=write(fd,str,sizeof(str));
     }
-    if(strcmp(msg->command, "FND") || strcmp(msg->command, "RSP")){
+    if(strcmp(msg->command, "FND") == 0 || strcmp(msg->command, "RSP") == 0){
         sprintf(str, "%s %d %d %d %s %d\n", msg->command, msg->searchKey, msg->sequenceN, msg->nodeKey, msg->ip, msg->port);
         errcode=write(fd,str,sizeof(str));
     }

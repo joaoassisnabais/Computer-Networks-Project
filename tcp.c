@@ -30,7 +30,6 @@ int clientTCP(char *serverIP, int serverPort){
     }
 
     errcode=connect(fd, res->ai_addr, res->ai_addrlen);
-    printf("errcode in client connect = %d",errcode);
     if(errcode==-1){
         perror("TCP client connect"); 
         exit(1);

@@ -64,11 +64,9 @@ void initState(bool isNew, nodeState *state, nodeInfo *prev, nodeInfo *next, int
         state->next->key=state->self->key;
         state->next->port=state->self->port;
         strcpy(state->next->ip, state->self->ip);
-        state->next->fd=-1;
         state->prev->key=state->self->key;
         state->prev->port=state->self->port;
         strcpy(state->prev->ip, state->self->ip);
-        state->prev->fd=-1;
     }else{
         if(prev!=NULL){
             state->prev->key=prev->key;
@@ -105,6 +103,8 @@ void initSelf(int k, char *ip, int port, nodeState **state){
     strcpy((*state)->self->ip, ip);
     (*state)->old->fd=-1;  //init with no old socket
     (*state)->SC->fd=-1;
+    (*state)->next->fd=-1;
+    (*state)->prev->fd=-1;
 }
 
 /**

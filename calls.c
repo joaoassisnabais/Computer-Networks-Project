@@ -112,8 +112,8 @@ void pentry(nodeState *state, char *info){
  */
 void show(nodeState *state){
     printf("\nPredecessor:\n\tKey:%d \n\tIP:%s \n\tPort:%d", state->prev->key, state->prev->ip, state->prev->port);
-    printf("\nSuccessor:\n\tKey:%d \n\tIP:%s \n\tPort:%d", state->next->key, state->next->ip, state->next->port);
     printf("\nSelf:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", state->self->key, state->self->ip, state->self->port);
+    printf("\nSuccessor:\n\tKey:%d \n\tIP:%s \n\tPort:%d", state->next->key, state->next->ip, state->next->port);
     if(state->SC->fd != -1)
         printf("Shortcut:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->SC->key, state->SC->ip, state->SC->port);
 }

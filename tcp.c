@@ -20,9 +20,7 @@ int clientTCP(char *serverIP, int serverPort){
     hints.ai_family = AF_INET ;         //IPv4
     hints.ai_socktype = SOCK_STREAM;    //TCP socket
 
-    //itoa(serverPort, strPort, 10);
     sprintf(strPort,"%d",serverPort);
-    printf("\nPort: %s \nIP: %s\n", strPort, serverIP);
     errcode=getaddrinfo(serverIP, strPort, &hints, &res);
     if(errcode!=0){
         perror("TCP client getaddrinfo"); 
@@ -53,7 +51,6 @@ int serverTCP(char *IP, int port){
     hints.ai_socktype = SOCK_STREAM;    //TCP socket
     hints.ai_flags = AI_PASSIVE;
 
-    //itoa(port, strPort, 10);
     sprintf(strPort,"%d",port);
     if((errcode=getaddrinfo(IP, strPort, &hints, &res))!= 0) exit(1);
 

@@ -48,6 +48,7 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current){
     if(strcmp(msg->command, "PRED") == 0){
         nodeInfo prev;
 
+        printf("\nReceived PRED to connect to node %d with Port: %d and IP: %s\n", msg->nodeKey, msg->port, msg->ip);
         if(state->prev->fd != -1){
             closeTCP(state->prev->fd);
             FD_CLR(state->prev->fd, current);
@@ -111,11 +112,11 @@ void pentry(nodeState *state, char *info){
  * @param state 
  */
 void show(nodeState *state){
-    printf("\nPredecessor:\n\tKey:%d \n\tIP:%s \n\tPort:%d", state->prev->key, state->prev->ip, state->prev->port);
-    printf("\nSelf:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", state->self->key, state->self->ip, state->self->port);
-    printf("\nSuccessor:\n\tKey:%d \n\tIP:%s \n\tPort:%d", state->next->key, state->next->ip, state->next->port);
+    printf("\nPredecessor:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", state->prev->key, state->prev->ip, state->prev->port);
+    printf("Self:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", state->self->key, state->self->ip, state->self->port);
+    printf("Successor:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", state->next->key, state->next->ip, state->next->port);
     if(state->SC->fd != -1)
-        printf("Shortcut:\n\tKey:%d \n\t IP:%s \n\tPort:%d", state->SC->key, state->SC->ip, state->SC->port);
+        printf("Shortcut:\n\tKey:%d \n\t IP:%s \n\tPort:%d \n", state->SC->key, state->SC->ip, state->SC->port);
 }
 
 /**
@@ -185,7 +186,7 @@ void msgPred(int fd, nodeInfo *nextPred){
     strcpy(msg.command, "PRED");
     strcpy(msg.ip, nextPred->ip);
     msg.port=nextPred->port;
-    msg.nodeKey=nextPred->port;
+    msg.nodeKey=nextPred->key;
     talkTCP(fd, &msg);
 }
 

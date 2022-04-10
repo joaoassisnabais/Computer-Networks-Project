@@ -195,7 +195,7 @@ void core(int selfKey, char *selfIP, int selfPort){
             }
 
             else if(strcmp(option,"leave") == 0 || strcmp(option,"l") == 0){
-                if(maxfd==0) printf("Already out of any ring");
+                if(maxfd==0) printf("\nAlready out of any ring\n");
                 else closeSelf(state, 1);
                 //free whatever
 
@@ -206,6 +206,10 @@ void core(int selfKey, char *selfIP, int selfPort){
                 closeSelf(state,0);
                 exit(0);
                 //free whatever
+            }
+
+            else{
+                printf("\nNot a valid option, please try again\n");
             }
         }
         //new connection to tcp server
@@ -223,15 +227,21 @@ void core(int selfKey, char *selfIP, int selfPort){
         if(FD_ISSET(serverSocketUDP, &readySockets)){
             //recvfrom()
             //do what its supposed to do with the connection
-            //basically turn on the read but maybe doing it by parts so it doesn't accept every packet at once
             
 
         }
         if(FD_ISSET(state->prev->fd, &readySockets)){
-
+            errcode = readTCP(state->next->fd, &msg);
             
+            //Other end has closed the session
+            if(errcode == -1){
+                closeTCP(state->next->fd);
+                FD_CLR(state->next->fd, &currentSockets);
+                state->next->fd=-1;
+            }else{
+                rcv_msg(&msg, state, &currentSockets);
+            }
             
-
         }
         if(FD_ISSET(state->next->fd, &readySockets)){
             errcode = readTCP(state->next->fd, &msg);

@@ -91,17 +91,23 @@ int accept_connectionTCP(int fd){
  */
 int readTCP(int fd, message *msg){
     char buffer[128];
-    int nread=0;
+    int nread=0, trash;
 
     nread=read(fd, &buffer, 128);
-    
+    sscanf(buffer, "%s %d", msg->command, &trash);
     //session closed by the other end
     if(nread == 0){ 
         return -1;
     }
     else{
-        if(strcmp(msg->command, "PRED") || strcmp(msg->command, "EPRED") || strcmp(msg->command, "SELF")){
-            sscanf(buffer,"%s %d %s %d", msg->command, &msg->nodeKey, msg->ip, &msg->port);   
+        if(strcmp(msg->command, "PRED") == 0 || strcmp(msg->command, "EPRED") == 0 || strcmp(msg->command, "SELF") == 0){
+            sscanf(buffer,"%*s %d %s %d", &msg->nodeKey, msg->ip, &msg->port);   
+        }
+        else if(strcmp(msg->command, "EFND") == 0 || strcmp(msg->command, "FND") == 0 || strcmp(msg->command, "RSP") == 0){
+            sscanf(buffer, "%*s %d %d %d %s %d", &msg->searchKey, &msg->sequenceN, &msg->nodeKey, msg->ip, &msg->port);
+        }
+        else{
+            printf("\nIncoming message command is not listed\n");
         }
         return 0;
     }
@@ -116,22 +122,25 @@ int readTCP(int fd, message *msg){
 void talkTCP(int fd, message *msg){
     //PROTECT AGAINST SIGPIPE
     int errcode=0;
-    char str[128];
+    char buffer[128];
 
     if(strcmp(msg->command, "PRED") == 0 || strcmp(msg->command, "EPRED") == 0 || strcmp(msg->command, "SELF") == 0){
-        sprintf(str, "%s %d %s %d\n", msg->command, msg->nodeKey, msg->ip, msg->port);
-        errcode=write(fd,str,sizeof(str));
+        sprintf(buffer, "%s %d %s %d\n", msg->command, msg->nodeKey, msg->ip, msg->port);
+        errcode=write(fd,buffer,sizeof(buffer));
     }
-    if(strcmp(msg->command, "FND") == 0 || strcmp(msg->command, "RSP") == 0){
-        sprintf(str, "%s %d %d %d %s %d\n", msg->command, msg->searchKey, msg->sequenceN, msg->nodeKey, msg->ip, msg->port);
-        errcode=write(fd,str,sizeof(str));
+    else if(strcmp(msg->command, "FND") == 0 || strcmp(msg->command, "RSP") == 0){
+        sprintf(buffer, "%s %d %d %d %s %d\n", msg->command, msg->searchKey, msg->sequenceN, msg->nodeKey, msg->ip, msg->port);
+        errcode=write(fd,buffer,sizeof(buffer));
+    }
+    else{
+        printf("\nOutgoing message command is not listed\n");
     }
 
     if(errcode==-1){
         perror("write failed");
         exit(1);
     }
-    if(errcode<sizeof(str)){
+    if(errcode<sizeof(buffer)){
         perror("write didn't write the whole message"); 
         exit(1);
     }

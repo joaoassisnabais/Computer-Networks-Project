@@ -13,6 +13,7 @@
 #include "calls.h"
 
 #define dist(origin,key) ((key-origin)%32)
+#define max(A,B) ((A)>=(B)?(A):(B))
 
 /**
  * @brief Receives a message and decides what to do with it (message control)
@@ -21,7 +22,7 @@
  * @param state State Variables
  * @param current Current fd_set so it can be updated
  */
-void rcv_msg(message *msg, nodeState *state, fd_set *current){
+void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
 
     if(strcmp(msg->command, "SELF") == 0){
         printf("\nReceived Self from node %d with Port: %d and IP: %s", msg->nodeKey, msg->port, msg->ip);
@@ -62,6 +63,7 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current){
         prev.fd = clientTCP(msg->ip, msg->port);
         initState(0, state, &prev, NULL, prev.fd, -1);
         FD_SET(prev.fd, current);
+        *maxfd=max(*maxfd, prev.fd);
         msgSelf(prev.fd, state->self);
     }
 

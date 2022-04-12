@@ -8,11 +8,11 @@
 #include "udp.h"
 #include "node.h"
 
-int clientTalkUDP(char *serverIP, int serverPort){
+int clientTalkUDP(char *serverIP, int serverPort, message *msg){
 
     struct addrinfo hints, *res;    //create addrinfo type structs to store hints and response data
-    int fd, errcode;
-    char strPort[32];
+    int fd, errcode, n;
+    char strPort[32], strBuffer[128];
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);    //open UDP socket
     if(fd == -1) exit(1);
@@ -24,6 +24,25 @@ int clientTalkUDP(char *serverIP, int serverPort){
     sprintf(strPort, "%d", serverPort);
     errcode = getaddrinfo(serverIP, strPort, &hints, &res);
     if(errcode != 0) exit(1);
+
+    if(strcmp(msg->command, "FND")==0 || strcmp(msg->command, "RSP")==0)
+        sprintf(strBuffer, "%s %d %d %d %s %d", msg->command, msg->searchKey, msg->sequenceN, msg->nodeKey, msg->ip, msg->port);
+    
+    if(strcmp(msg->command, "ACK")==0)
+        sprintf(strBuffer, "%s", msg->command);
+    
+    if(strcmp(msg->command, "EFND")==0)
+        sprintf(strBuffer, "%s %d", msg->command, msg->nodeKey);
+
+    if(strcmp(msg->command, "EPRED")==0)
+        sprintf(strBuffer, "%s %d %s %d", msg->command, msg->nodeKey, msg->ip, msg->port);
+
+    n = sendto(fd, strBuffer, strlen(strBuffer), 0,res->ai_addr, res->ai_addrlen);
+
+    if(errcode==-1){
+        perror("UDP write failed");
+        exit(1);
+    }
 
     freeaddrinfo(res);
 

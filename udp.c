@@ -83,7 +83,7 @@ void receive_messageUDP(int serverSocket, message *msg){
     nread=recvfrom(serverSocket, buffer, 128, 0, &addr, &addrlen);
     sscanf(buffer, "%s %*d", msg->command);
 
-    if(msg->command, "ACK"){
+    if(strcmp(msg->command, "ACK") == 0){
         return;
     }
     else if(strcmp(msg->command, "EPRED") == 0){

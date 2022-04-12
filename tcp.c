@@ -14,7 +14,10 @@ int clientTCP(char *serverIP, int serverPort){
     char strPort[32];
 
     fd=socket(AF_INET, SOCK_STREAM, 0);
-    if(fd==-1){perror("TCP client fd"); exit(1);}
+    if(fd==-1){
+        perror("TCP client fd");
+        exit(1);
+    }
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET ;         //IPv4
@@ -44,7 +47,8 @@ int serverTCP(char *IP, int port){
     int fd, errcode;
     char strPort[8];
 
-    if((fd=socket(AF_INET, SOCK_STREAM, 0)) == -1) exit(1);
+    if((fd=socket(AF_INET, SOCK_STREAM, 0)) == -1)
+        exit(1);
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET ;         //IPv4
@@ -52,11 +56,14 @@ int serverTCP(char *IP, int port){
     hints.ai_flags = AI_PASSIVE;
 
     sprintf(strPort,"%d",port);
-    if((errcode=getaddrinfo(IP, strPort, &hints, &res))!= 0) exit(1);
+    if((errcode=getaddrinfo(IP, strPort, &hints, &res))!= 0)
+        exit(1);
 
-    if(bind(fd, res->ai_addr,res->ai_addrlen) == -1) exit(1);
+    if(bind(fd, res->ai_addr,res->ai_addrlen) == -1)
+        exit(1);
 
-    if(listen(fd, 5) == -1) exit(1);
+    if(listen(fd, 5) == -1)
+        exit(1);
 
     freeaddrinfo(res);
 

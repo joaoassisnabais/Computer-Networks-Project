@@ -2,6 +2,6 @@
 #define udp_h
 
 int serverUDP(char *IP, int port);
-int clientUDP(char **hostname, char **port);
+int clientTalkUDP(char *serverIP, int serverPort);
 
 #endif

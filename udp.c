@@ -6,7 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "udp.h"
-#include "node.h"
+
 
 int clientTalkUDP(char *serverIP, int serverPort, message *msg){
 

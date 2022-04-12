@@ -38,7 +38,7 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
         
         //if an old socket exists check what's closer to see if it's a node leaving or a new node entering
         if(state->old->fd != -1){
-            if(dist(state->old->key,state->self->key) > dist(state->next->key, state->self->key)){ 
+            if(dist(state->self->key,state->old->key) > dist(state->self->key, state->next->key)){ 
                 msgPred(state->old->fd, state->next);
             }
         }
@@ -79,9 +79,9 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
         }else{  //It's not for me
             //Checks if SC is closer
             if(dist(state->SC->key, msg->searchKey) < dist(state->next->key, msg->searchKey)){  //SC is closer
-                msgRSP(state->SC->fd, NULL, msg, 0, -1);
+                msgRSP(state->SC->fd, NULL, msg, 0, -1, -1);
             }
-            msgRSP(state->next->fd, NULL, msg, 1, -1);
+            msgRSP(state->next->fd, NULL, msg, 1, -1, -1);
         }
 
     }
@@ -140,9 +140,6 @@ void find(nodeState *state, char *info, message *msg){
         k=msg->searchKey;     
     }
 
-
-    int a=dist(state->self->key,k);
-    int b=dist(state->next->key, k);
     //Checks if k key is in self
     if(dist(state->self->key,k) > dist(state->next->key, k)){   //key isn't in self
 
@@ -170,10 +167,10 @@ void find(nodeState *state, char *info, message *msg){
             //check if SC is closer than next
             if(state->SC->fd != -1){
                 if(dist(state->SC->key, k) < dist(state->next->key, k)){
-                    msgRSP(state->SC->fd, state->self, msg, 1, msg->nodeKey);
+                    msgRSP(state->SC->fd, state->self, NULL, 0, msg->nodeKey,msg->sequenceN);
                 }
-                msgRSP(state->next->fd, state->self, msg, 1, msg->nodeKey); //always send message to next in case UDP message is slower
             }
+            msgRSP(state->next->fd, state->self, NULL, 1, msg->nodeKey, msg->sequenceN); //always send message to next in case UDP message is slower
         }
     }
 }
@@ -217,8 +214,9 @@ void msgSelf(int fd, nodeInfo *self){
  * @param msg In case I just need to resend the message 
  * @param isTCP If it's sent to the shortcut or to the next node
  * @param k key from the node that asked for it
+ * @param seqn Sequence number from FND
  */
-void msgRSP(int fd, nodeInfo *node, message *msg, bool isTCP, int k){
+void msgRSP(int fd, nodeInfo *node, message *msg, bool isTCP, int k, int seqn){
    if(msg == NULL) {    //system call
         message aux;
         msg = &aux;     //create msg struct with system call inputs
@@ -228,7 +226,7 @@ void msgRSP(int fd, nodeInfo *node, message *msg, bool isTCP, int k){
         msg->port=node->port;
         msg->nodeKey=node->key;
         msg->searchKey=k;
-        //msg.sequenceN = ?;
+        msg->sequenceN = seqn;
     }
     if(isTCP) talkTCP(fd, msg);
     //else talkUDP()

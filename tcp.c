@@ -127,8 +127,15 @@ void talkTCP(int fd, message *msg){
         errcode=write(fd,str,sizeof(str));
     }
 
-    if(errcode==-1){perror("write failed"); exit(1);}
-    if(errcode<sizeof(str)){perror("write didn't write the whole message"); exit(1);}
+    if(errcode==-1){
+        perror("write failed");
+        exit(1);
+    }
+    if(errcode<sizeof(str)){
+        perror("write didn't write the whole message"); 
+        exit(1);
+    }
+
 }
 
 void closeTCP(int fd){

@@ -142,6 +142,9 @@ void core(int selfKey, char *selfIP, int selfPort){
     maxfd=0;
 
     while(1){
+        if(state->prev->fd != -1){
+            FD_SET(state->prev->fd, &currentSockets);
+        }
         FD_ZERO(&readySockets);
         memcpy(&readySockets,&currentSockets,sizeof(currentSockets));
         
@@ -231,19 +234,20 @@ void core(int selfKey, char *selfIP, int selfPort){
 
         }
         if(FD_ISSET(state->prev->fd, &readySockets)){
-            errcode = readTCP(state->next->fd, &msg);
+            errcode = readTCP(state->prev->fd, &msg);
             
             //Other end has closed the session
             if(errcode == -1){
-                closeTCP(state->next->fd);
-                FD_CLR(state->next->fd, &currentSockets);
-                state->next->fd=-1;
+                closeTCP(state->prev->fd);
+                FD_CLR(state->prev->fd, &currentSockets);
+                state->prev->fd=-1;
             }else{
-                rcv_msg(&msg, state, &currentSockets);
+                rcv_msg(&msg, state, &currentSockets, &maxfd);
             }
             
         }
         if(FD_ISSET(state->next->fd, &readySockets)){
+            printf("Node %d socket is %d", state->next->key, state->next->fd);
             errcode = readTCP(state->next->fd, &msg);
             
             //Other end has closed the session
@@ -252,7 +256,7 @@ void core(int selfKey, char *selfIP, int selfPort){
                 FD_CLR(state->next->fd, &currentSockets);
                 state->next->fd=-1;
             }else{
-                rcv_msg(&msg, state, &currentSockets);
+                rcv_msg(&msg, state, &currentSockets, &maxfd);
             }
         }
         if(FD_ISSET(state->old->fd, &readySockets)){

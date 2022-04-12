@@ -12,11 +12,25 @@
 #include "calls.h"
 #include "node.h"
 
-#define dist(start,end) ((end-start)%32)
 #define max(A,B) ((A)>=(B)?(A):(B))
 
 //sequence numbers and find Index are global variables
 int seq[100], findI;
+
+/**
+ * @brief Finds distance between two keys in the ring
+ * 
+ * @param start Starting point 
+ * @param end End point
+ * @return Result 
+ */
+int dist(int start, int end){
+    int res;
+    res=(end-start)%32;
+    if (res<0) res+=32;
+    
+    return res;
+}
 
 /**
  * @brief Initializes sequence with -1 in every index
@@ -191,10 +205,7 @@ void core(int selfKey, char *selfIP, int selfPort){
 
             else if(strcmp(option,"find") == 0 || strcmp(option,"f") == 0){
                 if(maxfd==0) exit(1);   //cant be done without initialized ring
-                if(findI==99) findI=-1;
-                findI+=1;
                 find(state, buffer, NULL);
-                
             }
 
             else if(strcmp(option,"leave") == 0 || strcmp(option,"l") == 0){
@@ -247,7 +258,6 @@ void core(int selfKey, char *selfIP, int selfPort){
             
         }
         if(FD_ISSET(state->next->fd, &readySockets)){
-            printf("Node %d socket is %d", state->next->key, state->next->fd);
             errcode = readTCP(state->next->fd, &msg);
             
             //Other end has closed the session

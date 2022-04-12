@@ -12,7 +12,6 @@
 #include "tcp.h"
 #include "calls.h"
 
-#define dist(origin,key) ((key-origin)%32)
 #define max(A,B) ((A)>=(B)?(A):(B))
 
 /**
@@ -25,7 +24,6 @@
 void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
 
     if(strcmp(msg->command, "SELF") == 0){
-        printf("\nReceived Self from node %d with Port: %d and IP: %s", msg->nodeKey, msg->port, msg->ip);
         nodeInfo next;
         next.key=msg->nodeKey;
         next.port=msg->port;
@@ -49,7 +47,6 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
     if(strcmp(msg->command, "PRED") == 0){
         nodeInfo prev;
 
-        printf("\nReceived PRED to connect to node %d with Port: %d and IP: %s\n", msg->nodeKey, msg->port, msg->ip);
         if(state->prev->fd != -1){
             closeTCP(state->prev->fd);
             FD_CLR(state->prev->fd, current);
@@ -143,10 +140,15 @@ void find(nodeState *state, char *info, message *msg){
         k=msg->searchKey;     
     }
 
+
+    int a=dist(state->self->key,k);
+    int b=dist(state->next->key, k);
     //Checks if k key is in self
     if(dist(state->self->key,k) > dist(state->next->key, k)){   //key isn't in self
 
         if(isSystemCall){
+            if(findI==99) findI=-1;
+            findI+=1;
             if(seq[findI] != -1) perror("Sequence number already in use");  //can't do a repeated find
             seq[findI]=k;
         }
@@ -155,10 +157,10 @@ void find(nodeState *state, char *info, message *msg){
         if(state->SC->fd != -1){
             //checks if SC is closer than next
             if(dist(state->SC->key, k) < dist(state->next->key, k)){    //SC is closer than next
-                msgFND(state->SC->fd, state->self, msg, 1, k);                
-            }
-            msgFND(state->next->fd, state->self, msg, 0, k);        //always send message to next in case UDP message is slower                
+                msgFND(state->SC->fd, state->self, msg, 0, k);                
+            }                
         }
+        msgFND(state->next->fd, state->self, msg, 1, k);        //always send message to next in case UDP message is slower
     }
     //key is in self
     else{
@@ -251,7 +253,7 @@ void msgFND(int fd, nodeInfo *node, message *msg, bool isTCP, int k){
         msg->port=node->port;
         msg->nodeKey=node->key;
         msg->searchKey=k;
-        //msg.sequenceN = ?;
+        msg->sequenceN = findI;
     }
 
     if(isTCP) talkTCP(fd, msg);

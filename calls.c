@@ -79,10 +79,19 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
         }else{  //It's not for me
             //Checks if SC is closer
             if(dist(state->SC->key, msg->searchKey) < dist(state->next->key, msg->searchKey)){  //SC is closer
-                msgRSP(state->SC->fd, NULL, msg, 0, -1);
+                msgRSP(state->SC, NULL, msg, 0, -1);
             }
-            msgRSP(state->next->fd, NULL, msg, 1, -1);
+            msgRSP(state->next, NULL, msg, 1, -1);
         }
+
+    }
+    if(strcmp(msg->command, "EFND") == 0){
+        
+    }
+    if(strcmp(msg->command, "EPRED") == 0){
+
+    }
+    if(strcmp(msg->command, "ACK") == 0){
 
     }
 }
@@ -157,10 +166,10 @@ void find(nodeState *state, char *info, message *msg){
         if(state->SC->fd != -1){
             //checks if SC is closer than next
             if(dist(state->SC->key, k) < dist(state->next->key, k)){    //SC is closer than next
-                msgFND(state->SC->fd, state->self, msg, 0, k);                
+                msgFND(state->SC, state->self, msg, 0, k);                
             }                
         }
-        msgFND(state->next->fd, state->self, msg, 1, k);        //always send message to next in case UDP message is slower
+        msgFND(state->next, state->self, msg, 1, k);        //always send message to next in case UDP message is slower
     }
     //key is in self
     else{
@@ -170,9 +179,9 @@ void find(nodeState *state, char *info, message *msg){
             //check if SC is closer than next
             if(state->SC->fd != -1){
                 if(dist(state->SC->key, k) < dist(state->next->key, k)){
-                    msgRSP(state->SC->fd, state->self, msg, 1, msg->nodeKey);
+                    msgRSP(state->SC, state->self, msg, 0, msg->nodeKey);
                 }
-                msgRSP(state->next->fd, state->self, msg, 1, msg->nodeKey); //always send message to next in case UDP message is slower
+                msgRSP(state->next, state->self, msg, 1, msg->nodeKey); //always send message to next in case UDP message is slower
             }
         }
     }
@@ -212,14 +221,14 @@ void msgSelf(int fd, nodeInfo *self){
 /**
  * @brief Sends RSP message
  * 
- * @param fd File descriptor to write to
+ * @param receiver Node information of receiver node
  * @param node Node information to fill in RSP
  * @param msg In case I just need to resend the message 
  * @param isTCP If it's sent to the shortcut or to the next node
  * @param k key from the node that asked for it
  */
-void msgRSP(int fd, nodeInfo *node, message *msg, bool isTCP, int k){
-   if(msg == NULL) {    //system call
+void msgRSP(nodeInfo *receiver, nodeInfo *node, message *msg, bool isTCP, int k){
+    if(msg == NULL) {    //system call
         message aux;
         msg = &aux;     //create msg struct with system call inputs
 
@@ -230,20 +239,20 @@ void msgRSP(int fd, nodeInfo *node, message *msg, bool isTCP, int k){
         msg->searchKey=k;
         //msg.sequenceN = ?;
     }
-    if(isTCP) talkTCP(fd, msg);
-    //else talkUDP()
+    if(isTCP) talkTCP(receiver->fd, msg);
+    else clientTalkUDP(receiver->ip, receiver->port, msg);
 }
 
 /**
  * @brief Sends FND message
  * 
- * @param fd File descriptor to write to
+ * @param receiver Node information of receiver node
  * @param node Node information to fill in RSP
  * @param msg In case I just need to resend the message 
  * @param isTCP If it's sent to the shortcut or to the next node
  * @param k key to be found
  */
-void msgFND(int fd, nodeInfo *node, message *msg, bool isTCP, int k){
+void msgFND(nodeInfo *receiver, nodeInfo *node, message *msg, bool isTCP, int k){
     if(msg == NULL) {    //system call
         message aux;
         msg = &aux;     //create msg struct with system call inputs
@@ -256,6 +265,6 @@ void msgFND(int fd, nodeInfo *node, message *msg, bool isTCP, int k){
         msg->sequenceN = findI;
     }
 
-    if(isTCP) talkTCP(fd, msg);
-    //else talkUDP()
+    if(isTCP) talkTCP(receiver->fd, msg);
+    else clientTalkUDP(receiver->ip, receiver->port, msg);
 }

@@ -16,6 +16,9 @@
 
 //sequence numbers and find Index are global variables
 int seq[100], findI;
+//address of query node (after EFND)
+struct sockaddr addr;
+socklen_t addrlen;
 
 /**
  * @brief Finds distance between two keys in the ring
@@ -115,8 +118,8 @@ void initSelf(int k, char *ip, int port, nodeState **state){
     (*state)->self->key=k;
     (*state)->self->port=port;
     strcpy((*state)->self->ip, ip);
-    (*state)->old->fd=-1;  //init with no old socket
-    (*state)->SC->fd=-1;
+    (*state)->old->fd=-1;   //init with no old socket
+    (*state)->SC->fd=-1;    //fd is only used to determine if a shortcut exists (0 for yes, -1 for no)
     (*state)->next->fd=-1;
     (*state)->prev->fd=-1;
 }
@@ -138,6 +141,21 @@ void closeSelf(nodeState *state, bool isLeave){
     }
 }
 
+void initSC(nodeState *state, char *buffer) {
+    int key, port;
+    char ip[16];
+
+    sscanf(buffer, "%*s %d %s %d", &key, ip, &port);
+
+    state->SC->key=key;
+    strcpy(state->SC->ip, ip);
+    state->SC->port=port;
+    state->SC->fd=0;    //fd is only used to determine if a shortcut exists (0 for yes, -1 for no)
+}
+
+void closeSC(nodeState *state){
+    state->SC->fd=-1;   //fd set to -1 to indicate shortcut doesn't exist anymore
+}
 
 void core(int selfKey, char *selfIP, int selfPort){
     char buffer[128], option[7];
@@ -190,12 +208,12 @@ void core(int selfKey, char *selfIP, int selfPort){
 
             else if(strcmp(option,"chord") == 0 || strcmp(option,"c") == 0){
                 if(maxfd==0) exit(1);   //cant be done without initialized ring
-                 
+                initSC(state, buffer);
             }
 
             else if(strcmp(option,"dchord") == 0 || strcmp(option,"echord") == 0 || strcmp(option,"d") == 0){
                 if(maxfd==0) exit(1);   //cant be done without initialized ring
-
+                closeSC(state);
             }
 
             else if(strcmp(option,"show") == 0 || strcmp(option,"s") == 0){
@@ -239,7 +257,8 @@ void core(int selfKey, char *selfIP, int selfPort){
             maxfd=max(state->next->fd,maxfd);
         }
         if(FD_ISSET(serverSocketUDP, &readySockets)){
-            //recvfrom()
+            receive_messageUDP(serverSocketUDP, &msg);
+            rcv_msg(&msg, state, &currentSockets, &maxfd);
             //do what its supposed to do with the connection
             
 

@@ -39,7 +39,7 @@ int clientTalkUDP(char *serverIP, int serverPort, message *msg){
 
     n = sendto(fd, strBuffer, strlen(strBuffer), 0,res->ai_addr, res->ai_addrlen);
 
-    if(errcode==-1){
+    if(n == -1){
         perror("UDP write failed");
         exit(1);
     }
@@ -75,13 +75,29 @@ int serverUDP(char *IP, int port){
     return fd;
 }
 
-int receive_messageUDP(int serverSocket, char *buffer){
+void receive_messageUDP(int serverSocket, message *msg){
  
-    struct sockaddr addr;
-    socklen_t addrlen;
     ssize_t nread;
+    char buffer[128+1];
 
     nread=recvfrom(serverSocket, buffer, 128, 0, &addr, &addrlen);
+    sscanf(buffer, "%s %*d", msg->command);
 
-    return nread;
+    if(msg->command, "ACK"){
+        return;
+    }
+    else if(strcmp(msg->command, "EPRED") == 0){
+        sscanf(buffer,"%*s %d %s %d", &msg->nodeKey, msg->ip, &msg->port);   
+    }
+    else if(strcmp(msg->command, "EFND") == 0 || strcmp(msg->command, "FND") == 0 || strcmp(msg->command, "RSP") == 0){
+        sscanf(buffer, "%*s %d %d %d %s %d", &msg->searchKey, &msg->sequenceN, &msg->nodeKey, msg->ip, &msg->port);
+    }
+    else{
+        printf("\nIncoming message command is not listed\n");
+    }
+
+    if(nread==-1) {
+        perror("UDP read error");
+        exit(1);
+    }
 }

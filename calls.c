@@ -127,6 +127,11 @@ void show(nodeState *state){
         printf("Shortcut:\n\tKey:%d \n\t IP:%s \n\tPort:%d \n", state->SC->key, state->SC->ip, state->SC->port);
 }
 
+void leave(nodeState *state){
+
+
+}
+
 /**
  * @brief checks if self has the key and responds apropriately
  * 

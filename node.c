@@ -228,8 +228,12 @@ void core(int selfKey, char *selfIP, int selfPort){
 
             else if(strcmp(option,"leave") == 0 || strcmp(option,"l") == 0){
                 if(maxfd==0) printf("\nAlready out of any ring\n");
-                else closeSelf(state, 1);
-                //free whatever
+                else{
+                    //close connection to next and expect close from prev
+                    //close servers
+                
+                    closeSelf(state, 1);
+                }
 
             }
 

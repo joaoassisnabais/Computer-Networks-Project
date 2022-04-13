@@ -24,7 +24,7 @@ int clientTalkUDP(char *serverIP, int serverPort, message *msg){
     fd = socket(AF_INET, SOCK_DGRAM, 0);    //open UDP socket
     if(fd == -1) exit(1);
 
-    memset(&hints, 0, sizeof(hints));
+    memset(&hints, 0, sizeof(hints));   //inits hints
     hints.ai_family = AF_INET;  //IPv4
     hints.ai_socktype = SOCK_DGRAM; //UDP socket
 
@@ -89,7 +89,7 @@ int serverUDP(char *IP, int port){
     fd=socket(AF_INET,SOCK_DGRAM,0); //open UDP socket
     if(fd==-1) exit(1); //error check
     
-    memset(&hints, 0, sizeof(hints));   //sets hints in memory
+    memset(&hints, 0, sizeof(hints));   //inits hints
     hints.ai_family= AF_INET ;  //IPv4
     hints.ai_socktype= SOCK_DGRAM; //UDP socket
     hints.ai_flags=AI_PASSIVE;

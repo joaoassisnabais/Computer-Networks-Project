@@ -154,6 +154,11 @@ void talkTCP(int fd, message *msg){
 
 }
 
+/**
+ * @brief Closes a TCP connection and checks for errors
+ * 
+ * @param fd Socket of the TCP connection
+ */
 void closeTCP(int fd){
     if(close(fd) == -1){
         perror("Close TCP session failed");

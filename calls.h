@@ -11,5 +11,6 @@ void msgRSP(nodeInfo *receiver, nodeInfo *node, message *msg, bool isTCP, int k,
 void msgFND(nodeInfo *receiver, nodeInfo *node, message *msg, bool isTCP, int k);
 void show(nodeState *state);
 void find(nodeState *state, char *info, message *msg);
+void leave(nodeState *state, fd_set *current, int *maxfd, int TCPsocket, int UDPsocket);
 
 #endif

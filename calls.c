@@ -20,9 +20,14 @@
  * @param msg  The message itself
  * @param state State Variables
  * @param current Current fd_set so it can be updated
+ * @param maxfd current maximum file descriptor
  */
 void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
 
+    /**
+     * @brief Receives and deals with SELF message
+     * 
+     */
     if(strcmp(msg->command, "SELF") == 0){
         nodeInfo next;
         next.key=msg->nodeKey;
@@ -44,6 +49,10 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
         }
     }
 
+    /**
+     * @brief Receives and deals with PRED message
+     * 
+     */
     if(strcmp(msg->command, "PRED") == 0){
         nodeInfo prev;
 
@@ -64,16 +73,24 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
         msgSelf(prev.fd, state->self);
     }
 
+    /**
+     * @brief Receives and deals with FND message
+     * 
+     */
     if(strcmp(msg->command, "FND") == 0){
         find(state, NULL, msg);
     }
 
+    /**
+     * @brief Receives and deals with RSP message
+     * 
+     */
     if(strcmp(msg->command, "RSP") == 0){
 
         //See if the RSP is for me        
         if(msg->searchKey == state->self->key){   //It's for me
             if(seq[msg->sequenceN] != -1){
-                printf("\nFound Key:%d in node with: \n\tKey:%d \n\tIP:%s \n\tPort:%d",seq[msg->sequenceN], msg->nodeKey, msg->ip, msg->port);
+                printf("Key %d found in node with:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n",seq[msg->sequenceN], msg->nodeKey, msg->ip, msg->port);
                 seq[msg->sequenceN] = -1;
             }
         }else{  //It's not for me
@@ -85,12 +102,27 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
         }
 
     }
+
+    /**
+     * @brief Receives and deals with EFND message
+     * 
+     */
     if(strcmp(msg->command, "EFND") == 0){
         
     }
+
+    /**
+     * @brief Receives and deals with EPRED message
+     * 
+     */
     if(strcmp(msg->command, "EPRED") == 0){
 
     }
+
+    /**
+     * @brief Receives and deals with ACK message
+     * 
+     */
     if(strcmp(msg->command, "ACK") == 0){
 
     }
@@ -120,16 +152,44 @@ void pentry(nodeState *state, char *info){
  * @param state 
  */
 void show(nodeState *state){
-    printf("\nPredecessor:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", state->prev->key, state->prev->ip, state->prev->port);
+    if(state->prev->fd != -1 || state->prev->key==state->self->key)
+        printf("\nPredecessor:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", state->prev->key, state->prev->ip, state->prev->port);
+    
     printf("Self:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", state->self->key, state->self->ip, state->self->port);
-    printf("Successor:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", state->next->key, state->next->ip, state->next->port);
+    
+    if(state->next->fd != -1 || state->next->key==state->self->key)
+        printf("Successor:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", state->next->key, state->next->ip, state->next->port);
+    
     if(state->SC->fd != -1)
         printf("Shortcut:\n\tKey:%d \n\t IP:%s \n\tPort:%d \n", state->SC->key, state->SC->ip, state->SC->port);
 }
 
-void leave(nodeState *state){
-
-
+/**
+ * @brief Leaves the current ring
+ * 
+ * @param state State Variables
+ * @param current Current fd set
+ * @param maxfd Maximum file descriptor to send to select
+ */
+void leave(nodeState *state, fd_set *current, int *maxfd, int TCPsocket, int UDPsocket){
+    if(state->prev->fd != -1){       //if its new there's no tcp connection to close
+        closeTCP(state->prev->fd);
+    }
+    if(state->next->fd != -1){
+        msgPred(state->next->fd, state->prev);
+        closeTCP(state->next->fd);
+    }
+    closeTCP(TCPsocket);
+    closeTCP(UDPsocket);
+    FD_ZERO(current);
+    FD_SET(0, current);
+    maxfd=0;
+    state->old->fd=-1;
+    state->SC->fd=-1;
+    state->next->fd=-1;
+    state->prev->fd=-1;
+    state->next->key=-1;
+    state->prev->key=-1;
 }
 
 /**
@@ -176,7 +236,7 @@ void find(nodeState *state, char *info, message *msg){
     //key is in self
     else{
         if(isSystemCall){
-            printf("Key %d found in node with:\n\tKey:%d \n\tIP:%s \n\tPort:%d", k, state->self->key, state->self->ip, state->self->port);
+            printf("Key %d found in node with:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", k, state->self->key, state->self->ip, state->self->port);
         }else{
             //check if SC is closer than next
             if(state->SC->fd != -1){

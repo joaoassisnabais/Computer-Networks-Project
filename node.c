@@ -44,6 +44,35 @@ void initSeq(void){
     for(int i=0; i<100; i++) seq[i]=-1;
 }
 
+/**
+ * @brief Prints the user command menu
+ * 
+ */
+void printmenu(bool isFull){
+    printf("\n#################################################");
+
+    if(isFull){
+        printf("\n\nThis is the application menu. Input 'menu' or 'm' to see it again.");
+        printf("\n\nnew\n\t-> Cria um anel contendo apenas o nó");
+        printf("\n\nbentry boot boot.IP boot.port\n\t");
+        printf("-> Entrada do nó no anel ao qual pertence o nó boot com endereço IP boot.IP e porto boot.port");
+        printf("\n\npentry pred pred.IP pred.port\n\t");
+        printf("-> Entrada do nó no anel sabendo que o seu predecessor será o nó pred com endereço IP pred.IP e porto pred.port");
+        printf("\n\nchord i i.IP i.port\n\t");
+        printf("-> Cria um atalho para o nó i com endereço IP i.IP e porto i.port");
+        printf("\n\nechord\n\t");
+        printf("-> Elimina o atalho");
+        printf("\n\nshow\n\t");
+        printf("-> Mostra o estado do nó");
+        printf("\n\nfind k\n\t");
+        printf("-> Procura a chave k, retornando a mesma, o endereço IP e o porto do nó à qual a chave pertence");
+        printf("\n\nleave\n\t");
+        printf("-> Saída do nó do anel");
+        printf("\n\nexit\n\t");
+        printf("-> Fecho do programa\n");
+    }
+    printf("\n#################################################\n");   
+}
 
 /**
  * @brief Initialize UDP and TCP servers
@@ -130,17 +159,16 @@ void initSelf(int k, char *ip, int port, nodeState **state){
  * @param state State Variables
  * @param isLeave Is or not coming from leave command
  */
-void closeSelf(nodeState *state, bool isLeave){
+void freeSelf(nodeState *state){
+    free(state->self);
+    free(state->old);
     free(state->next);
     free(state->prev);
     free(state->SC);
-    if(!isLeave){
-        free(state->self);
-        free(state->old);
-        free(state);
-    }
+    free(state);
 }
 
+/** */
 void initSC(nodeState *state, char *buffer) {
     int key, port;
     char ip[16];
@@ -153,10 +181,18 @@ void initSC(nodeState *state, char *buffer) {
     state->SC->fd=0;    //fd is only used to determine if a shortcut exists (0 for yes, -1 for no)
 }
 
+/** */
 void closeSC(nodeState *state){
     state->SC->fd=-1;   //fd set to -1 to indicate shortcut doesn't exist anymore
 }
 
+/**
+ * @brief Core function that is always running
+ * 
+ * @param selfKey My key
+ * @param selfIP My IP
+ * @param selfPort My port
+ */
 void core(int selfKey, char *selfIP, int selfPort){
     char buffer[128], option[7];
     fd_set currentSockets, readySockets;
@@ -167,16 +203,14 @@ void core(int selfKey, char *selfIP, int selfPort){
     findI=-1;
     initSeq();
     initSelf(selfKey, selfIP, selfPort, &state);
+    printmenu(1);
 
-    //init current set
+    //initialize current set
     FD_ZERO(&currentSockets);
     FD_SET(0,&currentSockets);
     maxfd=0;
-
+    
     while(1){
-        if(state->prev->fd != -1){
-            FD_SET(state->prev->fd, &currentSockets);
-        }
         FD_ZERO(&readySockets);
         memcpy(&readySockets,&currentSockets,sizeof(currentSockets));
         
@@ -207,46 +241,55 @@ void core(int selfKey, char *selfIP, int selfPort){
             }
 
             else if(strcmp(option,"chord") == 0 || strcmp(option,"c") == 0){
-                if(maxfd==0) exit(1);   //cant be done without initialized ring
+                if(maxfd==0) 
+                    printf("Can't be done outside of a ring\n"); 
                 initSC(state, buffer);
             }
 
             else if(strcmp(option,"dchord") == 0 || strcmp(option,"echord") == 0 || strcmp(option,"d") == 0){
-                if(maxfd==0) exit(1);   //cant be done without initialized ring
+                if(maxfd==0) 
+                    printf("Can't be done outside of a ring\n");   //cant be done without initialized ring
                 closeSC(state);
             }
 
             else if(strcmp(option,"show") == 0 || strcmp(option,"s") == 0){
-                if(maxfd==0) exit(1);   //cant be done without initialized ring
+                if(maxfd==0) 
+                    printf("Can't be done outside of a ring\n");   //cant be done without initialized ring
                 show(state);
             }
 
             else if(strcmp(option,"find") == 0 || strcmp(option,"f") == 0){
-                if(maxfd==0) exit(1);   //cant be done without initialized ring
+                if(maxfd==0) 
+                    printf("Can't be done outside of a ring\n");   //cant be done without initialized ring
                 find(state, buffer, NULL);
             }
 
             else if(strcmp(option,"leave") == 0 || strcmp(option,"l") == 0){
-                if(maxfd==0) printf("\nAlready out of any ring\n");
-                else{
-                    //close connection to next and expect close from prev
-                    //close servers
-                
-                    closeSelf(state, 1);
-                }
-
+                if(maxfd==0) 
+                    printf("\nNot in any ring\n");
+                else
+                    leave(state, &currentSockets, &maxfd, serverSocketTCP, serverSocketUDP);
             }
 
             else if(strcmp(option,"exit") == 0 || strcmp(option,"e") == 0){
+                if(maxfd!=0)
+                    leave(state, &currentSockets, &maxfd, serverSocketTCP, serverSocketUDP);
+
                 printf("\nExiting...\n");
-                closeSelf(state,0);
+                freeSelf(state);
                 exit(0);
-                //free whatever
+            }
+
+            else if(strcmp(option, "menu") == 0 || strcmp(option, "m") == 0){
+                printmenu(1);
             }
 
             else{
                 printf("\nNot a valid option, please try again\n");
             }
+
+            //prints divider between inputs
+            printmenu(0);
         }
         //new connection to tcp server
         if(FD_ISSET(serverSocketTCP,&readySockets)){

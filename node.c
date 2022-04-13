@@ -17,8 +17,12 @@
 //sequence numbers and find Index are global variables
 int seq[100], findI;
 //address of query node (after EFND)
-struct sockaddr addr;
-socklen_t addrlen;
+struct sockaddr addrNewNode, addrResendUDP, addrACKSendUDP;
+socklen_t addrlenNewNode, addrlenResendUDP, addrlenACKSendUDP;
+//flag to indicate if program should listen to ACKs
+bool flagACK;
+//UDP msg to resend in case ACK isn't received
+message msgResendUDP;
 
 /**
  * @brief Finds distance between two keys in the ring
@@ -163,6 +167,9 @@ void core(int selfKey, char *selfIP, int selfPort){
     int serverSocketTCP, serverSocketUDP, maxfd, errcode;
     nodeState *state = NULL;
     message msg;
+    struct timeval timeout, *addrTimeout;   //timeout struct and pointer, timeout = 1s
+    timeout.tv_sec=1;
+    timeout.tv_usec=0;
 
     findI=-1;
     initSeq();
@@ -179,8 +186,17 @@ void core(int selfKey, char *selfIP, int selfPort){
         }
         FD_ZERO(&readySockets);
         memcpy(&readySockets,&currentSockets,sizeof(currentSockets));
+
+        if(flagACK)
+            addrTimeout = &timeout;
+        else
+            addrTimeout = NULL;
         
-        if(select(maxfd+1, &readySockets, NULL, NULL, NULL) < 0) exit(1);
+        if(select(maxfd+1, &readySockets, NULL, NULL, addrTimeout) < 0) exit(1);
+
+        if(flagACK){    //resend msg via UDP
+            clientTalkUDP(NULL, -1, &msgResendUDP);
+        }
 
         //checking what sockets are set
         if(FD_ISSET(0,&readySockets)){

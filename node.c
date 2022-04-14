@@ -206,6 +206,7 @@ void core(int selfKey, char *selfIP, int selfPort){
     struct timeval timeout, *addrTimeout;   //timeout struct and pointer, timeout = 1s
     timeout.tv_sec=1;
     timeout.tv_usec=0;
+    bool isSetFlag;     //used to prevent UDP msg being sent when another fd triggers selec
 
     findI=-1;
     initSeq();
@@ -220,6 +221,7 @@ void core(int selfKey, char *selfIP, int selfPort){
     while(1){
         FD_ZERO(&readySockets);
         memcpy(&readySockets,&currentSockets,sizeof(currentSockets));
+        isSetFlag = false;
 
         if(flagACK)
             addrTimeout = &timeout;
@@ -228,12 +230,9 @@ void core(int selfKey, char *selfIP, int selfPort){
         
         if(select(maxfd+1, &readySockets, NULL, NULL, addrTimeout) < 0) exit(1);
 
-        if(flagACK){    //resend msg via UDP
-            clientTalkUDP(NULL, -1, &msgResendUDP);
-        }
-
         //checking what sockets are set
         if(FD_ISSET(0,&readySockets)){
+            isSetFlag = true;
             //detecting stdin input
             strcpy(buffer,"");
             fgets(buffer, 128, stdin);
@@ -309,6 +308,7 @@ void core(int selfKey, char *selfIP, int selfPort){
         }
         //new connection to tcp server
         if(FD_ISSET(serverSocketTCP,&readySockets)){
+            isSetFlag = true;
             if(state->next->fd != -1){
                 state->old->fd= state->next->fd;
                 state->old->key=state->next->key;
@@ -327,6 +327,7 @@ void core(int selfKey, char *selfIP, int selfPort){
 
         }
         if(FD_ISSET(state->prev->fd, &readySockets)){
+            isSetFlag = true;
             errcode = readTCP(state->prev->fd, &msg);
             
             //Other end has closed the session
@@ -340,6 +341,7 @@ void core(int selfKey, char *selfIP, int selfPort){
             
         }
         if(FD_ISSET(state->next->fd, &readySockets)){
+            isSetFlag = true;
             errcode = readTCP(state->next->fd, &msg);
             
             //Other end has closed the session
@@ -352,6 +354,7 @@ void core(int selfKey, char *selfIP, int selfPort){
             }
         }
         if(FD_ISSET(state->old->fd, &readySockets)){
+            isSetFlag = true;
             errcode = readTCP(state->old->fd, &msg);
             //this means other end has closed the session
             if(errcode == -1){
@@ -362,6 +365,9 @@ void core(int selfKey, char *selfIP, int selfPort){
                 perror("Message from leaving node is not FIN");
                 exit(1);
             }
+        }
+        if(flagACK && !isSetFlag){    //resend msg via UDP
+            clientTalkUDP(NULL, -1, &msgResendUDP);
         }
     }    
 }

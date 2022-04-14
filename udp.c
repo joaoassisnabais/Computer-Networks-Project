@@ -72,7 +72,7 @@ int clientTalkUDP(char *serverIP, int serverPort, message *msg){
     else{   //MUITA PADEIRISSE, foi para nao dar um erro , mas o ack continua sem funcionar
         addr_in = (struct sockaddr_in*) &addr;
         addr_in->sin_family=AF_INET;
-        n = sendto(fd, strBuffer, strlen(strBuffer), 0, (struct sockaddr*) addr_in, addrlen);
+        n = sendto(fd, strBuffer, strlen(strBuffer), 0, (struct sockaddr*) addr_in, addrlen);   //nao entendo bem o que esta aqui mas este addrlen pode ter mudado porque o addr enviado mudou
     }
 
     addrResendUDP = addr;   //save addr info in case it doesn't receive ACK

@@ -257,25 +257,25 @@ void core(int selfKey, char *selfIP, int selfPort){
 
             else if(strcmp(option,"chord") == 0 || strcmp(option,"c") == 0){
                 if(maxfd==0) 
-                    printf("Can't be done outside of a ring\n"); 
+                    printf("\nCan't be done outside of a ring\n"); 
                 initSC(state, buffer);
             }
 
             else if(strcmp(option,"dchord") == 0 || strcmp(option,"echord") == 0 || strcmp(option,"d") == 0){
                 if(maxfd==0) 
-                    printf("Can't be done outside of a ring\n");   //cant be done without initialized ring
+                    printf("\nCan't be done outside of a ring\n");   //cant be done without initialized ring
                 closeSC(state);
             }
 
             else if(strcmp(option,"show") == 0 || strcmp(option,"s") == 0){
                 if(maxfd==0) 
-                    printf("Can't be done outside of a ring\n");   //cant be done without initialized ring
+                    printf("\nCan't be done outside of a ring\n");   //cant be done without initialized ring
                 show(state);
             }
 
             else if(strcmp(option,"find") == 0 || strcmp(option,"f") == 0){
                 if(maxfd==0) 
-                    printf("Can't be done outside of a ring\n");   //cant be done without initialized ring
+                    printf("\nCan't be done outside of a ring\n");   //cant be done without initialized ring
                 find(state, buffer, NULL);
             }
 
@@ -306,7 +306,8 @@ void core(int selfKey, char *selfIP, int selfPort){
             //prints divider between inputs
             printmenu(0);
         }
-        //new connection to tcp server
+        
+        //TCP server
         if(FD_ISSET(serverSocketTCP,&readySockets)){
             isSetFlag = true;
             if(state->next->fd != -1){
@@ -319,13 +320,16 @@ void core(int selfKey, char *selfIP, int selfPort){
             FD_SET(state->next->fd, &currentSockets);
             maxfd=max(state->next->fd,maxfd);
         }
+
+        //UDP server
         if(FD_ISSET(serverSocketUDP, &readySockets)){
             receive_messageUDP(serverSocketUDP, &msg);
             rcv_msg(&msg, state, &currentSockets, &maxfd);
-            //do what its supposed to do with the connection
             
 
         }
+
+        //Predecessor socket
         if(FD_ISSET(state->prev->fd, &readySockets)){
             isSetFlag = true;
             errcode = readTCP(state->prev->fd, &msg);
@@ -340,6 +344,8 @@ void core(int selfKey, char *selfIP, int selfPort){
             }
             
         }
+
+        //Successor socket
         if(FD_ISSET(state->next->fd, &readySockets)){
             isSetFlag = true;
             errcode = readTCP(state->next->fd, &msg);
@@ -353,6 +359,8 @@ void core(int selfKey, char *selfIP, int selfPort){
                 rcv_msg(&msg, state, &currentSockets, &maxfd);
             }
         }
+
+        //Old succesors' socket
         if(FD_ISSET(state->old->fd, &readySockets)){
             isSetFlag = true;
             errcode = readTCP(state->old->fd, &msg);

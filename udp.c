@@ -5,10 +5,11 @@
 #include <netdb.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 #include "udp.h"
 #include "node.h"
 
-int clientTalkUDP(char *serverIP, int serverPort, message *msg){
+int clientTalkUDP(char *serverIP, int serverPort, message *msg, int fd){
 
     struct addrinfo hints, *res;    //create addrinfo type structs to store hints and response data
     int fd, errcode, n;
@@ -39,11 +40,32 @@ int clientTalkUDP(char *serverIP, int serverPort, message *msg){
 
     n = sendto(fd, strBuffer, strlen(strBuffer), 0,res->ai_addr, res->ai_addrlen);
 
+
     if(n == -1){
         perror("UDP write failed");
         exit(1);
     }
 
+    fd_set socketUDP;
+    struct timeval tv;
+    FD_ZERO(&socketUDP);
+    FD_SET(fd, &socketUDP);
+
+    tv.tv_sec=1;
+    //do n iterations (resends) expecting for ack
+    for(int i=0; i<3; i++){
+        if(select(fd+1, &socketUDP, NULL, NULL, &tv) < 0){
+            perror("UDP select");
+            exit(1);
+        }
+
+        if(FD_ISSET(fd, &socketUDP)){
+
+
+            break;  //to exit if an ack is received
+        }
+    
+    }
     freeaddrinfo(res);
 
     return 0;

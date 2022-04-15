@@ -17,9 +17,11 @@
 //sequence numbers and find Index are global variables
 int seq[100], findI;
 int serverSocketUDP, serverSocketTCP;
-//address of query node (after EFND)
-//struct sockaddr addr;
-//socklen_t addrlen;
+
+//info of bentry incoming node
+struct sockaddr Baddr;  //bentry asking node address
+socklen_t Baddrlen;     //bentry asking node adress lenght
+int Bkey=-1;   //bentry asking node key to find
 
 /**
  * @brief Finds distance between two keys in the ring
@@ -231,14 +233,12 @@ void core(int selfKey, char *selfIP, int selfPort){
 
             else if(strcmp(option,"bentry") == 0 || strcmp(option,"b") == 0){
                 maxfd=initServers(&currentSockets, &serverSocketTCP, &serverSocketUDP, maxfd, state);
-                initState(0, state, NULL,  NULL, -1, -1);   //FALTA fazer isto preciso fazer find primeiro
+                bentry(state, buffer);
             }
 
             else if(strcmp(option,"pentry") == 0 || strcmp(option,"p") == 0){
                 maxfd=initServers(&currentSockets, &serverSocketTCP, &serverSocketUDP, maxfd, state);
-                pentry(state, buffer);
-                FD_SET(state->prev->fd, &currentSockets);
-                maxfd=max(state->prev->fd,  maxfd);
+                pentry(state, buffer, &currentSockets, &maxfd);
             }
 
             else if(strcmp(option,"chord") == 0 || strcmp(option,"c") == 0){
@@ -310,7 +310,7 @@ void core(int selfKey, char *selfIP, int selfPort){
             rcv_msg(&msg, state, &currentSockets, &maxfd);
         }
 
-        //predecessor socket
+        //Predecessor socket
         if(FD_ISSET(state->prev->fd, &readySockets)){
             errcode = readTCP(state->prev->fd, &msg);
             
@@ -325,7 +325,7 @@ void core(int selfKey, char *selfIP, int selfPort){
             
         }
         
-        //successor socket
+        //Successor socket
         if(FD_ISSET(state->next->fd, &readySockets)){
             errcode = readTCP(state->next->fd, &msg);
             

@@ -90,25 +90,29 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
         //See if the RSP is for me        
         if(msg->searchKey == state->self->key){   //It's for me
             if(seq[msg->sequenceN] != -1){
+                //Need to return an EPRED
+                if(seq[msg->sequenceN]==Bkey){
+                    Bkey=-1;
+                    strcpy(msg->command, "EPRED");
+                    clientTalkUDP(NULL, 0, msg);
+                    seq[msg->sequenceN] = -1;
+                    return;
+                }
                 printf("Key %d found in node with:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n",seq[msg->sequenceN], msg->nodeKey, msg->ip, msg->port);
                 seq[msg->sequenceN] = -1;
             }
         }else{  //It's not for me
-            
             //Checks if SC exists
-            if(state->SC->fd!=-1){
-                
+            if(state->SC->fd!=-1){ 
                 //Checks if SC is closer
                 if(dist(state->SC->key, msg->searchKey) < dist(state->next->key, msg->searchKey)){  //SC is closer
                     msgRSP(state->SC, NULL, msg, 0, -1, -1);
                 }
-
                 //SC exists but it's not the closest
                 else{ 
                     msgRSP(state->next, NULL, msg, 1, -1, -1);
                 }
             }
-            
             //SC doesn't exist
             else{
                 msgRSP(state->next, NULL, msg, 1, -1, -1);
@@ -121,7 +125,8 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
      * 
      */
     if(strcmp(msg->command, "EFND") == 0){
-        
+        Bkey=msg->searchKey;
+        find(state, NULL, msg);
     }
 
     /**
@@ -129,25 +134,42 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
      * 
      */
     if(strcmp(msg->command, "EPRED") == 0){
-
+        //Needs to check if it's alone because if it is it means it should run pentry, otherwise it's a repeated message
+        if(state->next->fd==-1 && state->prev->fd==-1){
+            char info[128];
+            sprintf(info,"pentry %d %s %d", msg->nodeKey, msg->ip, msg->port);
+            pentry(state, info, current, maxfd);
+        }
     }
+}
 
-    /**
-     * @brief Receives and deals with ACK message
-     * 
-     */
-    if(strcmp(msg->command, "ACK") == 0){
-
+/**
+ * @brief Entry in the ring knowing only a node in the ring
+ * 
+ * @param state State Variables
+ * @param info String with the contact nodes' information
+ */
+void bentry(nodeState *state, char *info){
+    nodeInfo contact;
+    message msg;
+    
+    if(info != NULL){
+        sscanf(info, "%*s %d %s %d", &contact.key, contact.ip, &contact.port);
     }
+    strcpy(msg.command,"EFND");
+    msg.nodeKey=state->self->key;
+    clientTalkUDP(contact.ip, contact.port, &msg);
 }
 
 /**
  * @brief Entry in the ring knowing the predecessor
  * 
  * @param state State Variables
- * @param info String with the predecessors variables
+ * @param info String with the previous nodes' information
+ * @param current Current fd_set
+ * @param maxfd Pointer to the highest file descriptor
  */
-void pentry(nodeState *state, char *info){
+void pentry(nodeState *state, char *info, fd_set *current, int *maxfd){
     nodeInfo prev;
 
     if(info != NULL){
@@ -157,6 +179,8 @@ void pentry(nodeState *state, char *info){
     
     initState(0, state, &prev, NULL, prev.fd, -1);
     msgSelf(prev.fd, state->self);
+    FD_SET(state->prev->fd, current);
+    *maxfd=max(state->prev->fd, *maxfd);
 }
 
 /**
@@ -174,7 +198,7 @@ void show(nodeState *state){
         printf("Successor:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", state->next->key, state->next->ip, state->next->port);
     
     if(state->SC->fd != -1)
-        printf("Shortcut:\n\tKey:%d \n\t IP:%s \n\tPort:%d \n", state->SC->key, state->SC->ip, state->SC->port);
+        printf("Shortcut:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", state->SC->key, state->SC->ip, state->SC->port);
 }
 
 /**
@@ -191,9 +215,9 @@ void leave(nodeState *state, fd_set *current, int *maxfd, int TCPsocket, int UDP
     if(state->next->fd != -1){
         msgPred(state->next->fd, state->prev);
         closeTCP(state->next->fd);
+        closeTCP(TCPsocket);
+        closeTCP(UDPsocket);
     }
-    closeTCP(TCPsocket);
-    closeTCP(UDPsocket);
     FD_ZERO(current);
     FD_SET(0, current);
     maxfd=0;
@@ -216,7 +240,7 @@ void leave(nodeState *state, fd_set *current, int *maxfd, int TCPsocket, int UDP
  */
 void find(nodeState *state, char *info, message *msg){
     int k;
-    bool isSystemCall;
+    bool isSystemCall, isEFND=false;
 
     if(info != NULL){   //system call
         isSystemCall=true;
@@ -224,17 +248,19 @@ void find(nodeState *state, char *info, message *msg){
     } 
     else{   //not a system call
         isSystemCall=false;
+        if(Bkey!=-1) isEFND=true;
         k=msg->searchKey;     
     }
 
     //Checks if k key is in self
     if(dist(state->self->key,k) > dist(state->next->key, k)){   //key isn't in self
 
-        if(isSystemCall){
+        if(isSystemCall || isEFND){
             if(findI==99) findI=-1;
             findI+=1;
             if(seq[findI] != -1) perror("Sequence number already in use");  //can't do a repeated find
             seq[findI]=k;
+            msg=NULL;
         }
 
         //Checks if SC exists
@@ -257,7 +283,17 @@ void find(nodeState *state, char *info, message *msg){
     else{
         if(isSystemCall){
             printf("Key %d found in node with:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", k, state->self->key, state->self->ip, state->self->port);
-        }else{
+        }
+        else if(isEFND){
+            Bkey=-1;
+            strcpy(msg->command, "EPRED");
+            msg->nodeKey=state->self->key;
+            strcpy(msg->ip,state->self->ip);
+            msg->port=state->self->port;
+            clientTalkUDP(NULL, 0, msg);
+            return;
+        }
+        else{
             //check if SC is closer than next
             if(state->SC->fd != -1){
                 if(dist(state->SC->key, k) < dist(state->next->key, k)){
@@ -358,3 +394,4 @@ void msgFND(nodeInfo *receiver, nodeInfo *node, message *msg, bool isTCP, int k)
     if(isTCP) talkTCP(receiver->fd, msg);
     else clientTalkUDP(receiver->ip, receiver->port, msg);
 }
+

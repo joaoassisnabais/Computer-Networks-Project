@@ -3,8 +3,10 @@
 #define node_h
 
 extern int seq[100], findI;
-extern struct sockaddr addr;
-extern socklen_t addrlen;
+extern struct sockaddr Baddr;
+extern socklen_t Baddrlen;
+extern int Bkey;
+extern int serverSocketUDP, serverSocketTCP;
 
 typedef struct node_info {
     int key;

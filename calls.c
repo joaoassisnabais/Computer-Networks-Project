@@ -163,7 +163,7 @@ void show(nodeState *state){
         printf("Successor:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", state->next->key, state->next->ip, state->next->port);
     
     if(state->SC->fd != -1)
-        printf("Shortcut:\n\tKey:%d \n\t IP:%s \n\tPort:%d \n", state->SC->key, state->SC->ip, state->SC->port);
+        printf("Shortcut:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", state->SC->key, state->SC->ip, state->SC->port);
 }
 
 /**

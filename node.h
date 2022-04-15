@@ -27,10 +27,12 @@ typedef struct comms_message{
 } message;
 
 extern int seq[100], findI;
-extern struct sockaddr addrNewNode, addrResendUDP, addrACKSendUDP;
+extern struct sockaddr addrResendUDP;
+extern struct sockaddr_in addrNewNode, addrACKSendUDP;
 extern socklen_t addrlenNewNode, addrlenResendUDP, addrlenACKSendUDP;
 extern bool flagACK;
 extern message msgResendUDP;
+extern int serverSocketUDPGlobal;
 
 void core(int selfKey, char *IP, int selfPort);
 void initState(bool isNew, nodeState *state, nodeInfo *prev, nodeInfo *next, int pfd, int nfd);

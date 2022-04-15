@@ -1,5 +1,5 @@
 ring: main.o node.o calls.o tcp.o udp.o
-	gcc -Wall -std=gnu99 -g -o ring main.o node.o calls.o tcp.o udp.o
+	gcc -Wall -std=gnu99 -g -o ring main.o node.o calls.o tcp.o udp.o -lm
 main.o: main.c node.h calls.h tcp.h udp.h 
 	gcc -Wall -std=gnu99 -g -c main.c
 node.o: node.c node.h calls.h tcp.h udp.h 

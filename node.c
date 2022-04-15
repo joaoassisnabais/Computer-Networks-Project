@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
@@ -17,8 +18,10 @@
 //sequence numbers and find Index are global variables
 int seq[100], findI;
 //address of query node (after EFND)
-struct sockaddr addrNewNode, addrResendUDP, addrACKSendUDP;
+struct sockaddr addrResendUDP;
+struct sockaddr_in addrNewNode, addrACKSendUDP;
 socklen_t addrlenNewNode, addrlenResendUDP, addrlenACKSendUDP;
+int serverSocketUDPGlobal;
 //flag to indicate if program should listen to ACKs
 bool flagACK;
 //UDP msg to resend in case ACK isn't received
@@ -190,6 +193,19 @@ void closeSC(nodeState *state){
     state->SC->fd=-1;   //fd set to -1 to indicate shortcut doesn't exist anymore
 }
 
+struct timeval *exponentialBackoff(struct timeval *timeout, int *timeoutTracker){
+        if(flagACK && (*timeoutTracker <= 4)){  //increase timeout up to 16 seconds
+            timeout->tv_sec = pow(2, (*timeoutTracker));   //increase wait time by a factor of 2
+            timeout->tv_usec = 0;
+            *timeoutTracker += 1;
+            return timeout;
+        }
+        else{
+            *timeoutTracker = 0;    //reset timer to 1 second (or set it if 1st time)
+            return NULL;
+        }
+}
+
 /**
  * @brief Core function that is always running
  * 
@@ -200,13 +216,14 @@ void closeSC(nodeState *state){
 void core(int selfKey, char *selfIP, int selfPort){
     char buffer[128], option[7];
     fd_set currentSockets, readySockets;
-    int serverSocketTCP, serverSocketUDP, maxfd, errcode;
+    int serverSocketTCP, serverSocketUDP, maxfd, errcode, timeoutTracker;
     nodeState *state = NULL;
     message msg;
     struct timeval timeout, *addrTimeout;   //timeout struct and pointer, timeout = 1s
+    bool isSetFlag;     //used to prevent UDP msg being sent when another fd triggers selec
     timeout.tv_sec=1;
     timeout.tv_usec=0;
-    bool isSetFlag;     //used to prevent UDP msg being sent when another fd triggers selec
+    flagACK=false;
 
     findI=-1;
     initSeq();
@@ -223,10 +240,7 @@ void core(int selfKey, char *selfIP, int selfPort){
         memcpy(&readySockets,&currentSockets,sizeof(currentSockets));
         isSetFlag = false;
 
-        if(flagACK)
-            addrTimeout = &timeout;
-        else
-            addrTimeout = NULL;
+        addrTimeout = exponentialBackoff(&timeout, &timeoutTracker);
         
         if(select(maxfd+1, &readySockets, NULL, NULL, addrTimeout) < 0) exit(1);
 

@@ -94,11 +94,13 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
                 seq[msg->sequenceN] = -1;
             }
         }else{  //It's not for me
-            //Checks if SC is closer
-            if(dist(state->SC->key, msg->searchKey) < dist(state->next->key, msg->searchKey)){  //SC is closer
+            //Checks if SC exists and if is closer
+            if(state->SC->fd!=-1 && (dist(state->SC->key, msg->searchKey) < dist(state->next->key, msg->searchKey))){
                 msgRSP(state->SC, NULL, msg, 0, -1, -1);
+            }      
+            else{   //SC doesn't exist or is further away
+                msgRSP(state->next, NULL, msg, 1, -1, -1);
             }
-            msgRSP(state->next, NULL, msg, 1, -1, -1);
         }
 
     }
@@ -224,27 +226,26 @@ void find(nodeState *state, char *info, message *msg){
             seq[findI]=k;
         }
 
-        //Checks if SC exists
-        if(state->SC->fd != -1){
-            //checks if SC is closer than next
-            if(dist(state->SC->key, k) < dist(state->next->key, k)){    //SC is closer than next
-                msgFND(state->SC, state->self, msg, 0, k);                
-            }                
+        //Checks if SC exists and if is closer
+        if(state->SC->fd!=-1 && (dist(state->SC->key, k) < dist(state->next->key, k))){
+            msgFND(state->SC, state->self, msg, 0, k);
+        }      
+        else{   //SC doesn't exist or is further away
+            msgFND(state->next, state->self, msg, 1, k);
         }
-        msgFND(state->next, state->self, msg, 1, k);        //always send message to next in case UDP message is slower
     }
     //key is in self
     else{
         if(isSystemCall){
             printf("Key %d found in node with:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", k, state->self->key, state->self->ip, state->self->port);
         }else{
-            //check if SC is closer than next
-            if(state->SC->fd != -1){
-                if(dist(state->SC->key, k) < dist(state->next->key, k)){
-                    msgRSP(state->SC, state->self, NULL, 0, msg->nodeKey,msg->sequenceN);
-                }
+            //Checks if SC exists and if is closer
+            if(state->SC->fd!=-1 && (dist(state->SC->key, k) < dist(state->next->key, k))){
+                msgRSP(state->SC, state->self, NULL, 0, msg->nodeKey,msg->sequenceN);
+            }      
+            else{   //SC doesn't exist or is further away
+                msgRSP(state->next, state->self, NULL, 1, msg->nodeKey, msg->sequenceN); 
             }
-            msgRSP(state->next, state->self, NULL, 1, msg->nodeKey, msg->sequenceN); //always send message to next in case UDP message is slower
         }
     }
 }

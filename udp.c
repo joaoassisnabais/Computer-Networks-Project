@@ -18,15 +18,10 @@ void sendACK(){
 int clientTalkUDP(char *serverIP, int serverPort, message *msg){
 
     struct addrinfo hints, *res;    //create addrinfo type structs to store hints and response data
-    struct sockaddr addr;
-    struct sockaddr_in *addr_in;
+    struct sockaddr addr, *addrPointer;
     socklen_t addrlen;
-    int fd, errcode, n;
+    int errcode, n;
     char strPort[32], strBuffer[128];
-    bool flagMsg;
-
-    fd = socket(AF_INET, SOCK_DGRAM, 0);    //open UDP socket
-    if(fd == -1) exit(1);
 
     memset(&hints, 0, sizeof(hints));   //inits hints
     hints.ai_family = AF_INET;  //IPv4
@@ -37,24 +32,23 @@ int clientTalkUDP(char *serverIP, int serverPort, message *msg){
         errcode = getaddrinfo(serverIP, strPort, &hints, &res);
         if(errcode != 0) exit(1);
         addr = *(res->ai_addr);
+        addrPointer = &addr;
         addrlen = res->ai_addrlen;
         freeaddrinfo(res);
         flagACK = 1;    //expect an ACK after sending UDP msg
-        flagMsg=1;
     }
     else if(strcmp(msg->command, "ACK")==0) {
-        addr = addrACKSendUDP;
         addrlen = addrlenACKSendUDP;
 
         sprintf(strBuffer, "%s", msg->command);
         flagACK = 0;    //don't expect ACK after sending ACK
-        flagMsg = 0;
     }
     else{
         addr = addrResendUDP;
+        addrPointer = &addr;
         addrlen = addrlenResendUDP;
+
         flagACK = 1;    //expect an ACK after sending UDP msg
-        flagMsg = 0;
     }
 
     if(strcmp(msg->command, "FND")==0 || strcmp(msg->command, "RSP")==0)
@@ -66,14 +60,15 @@ int clientTalkUDP(char *serverIP, int serverPort, message *msg){
     else if(strcmp(msg->command, "EPRED")==0)
         sprintf(strBuffer, "%s %d %s %d", msg->command, msg->nodeKey, msg->ip, msg->port);
 
-    if(flagMsg)
-        n = sendto(fd, strBuffer, strlen(strBuffer), 0, &addr, addrlen);
+    addrlen = sizeof(*addrPointer);
+    n = sendto(serverSocketUDPGlobal, strBuffer, strlen(strBuffer), 0, addrPointer, addrlen);
+    /*if(flagMsg)
 
     else{   //MUITA PADEIRISSE, foi para nao dar um erro , mas o ack continua sem funcionar
         addr_in = (struct sockaddr_in*) &addr;
         addr_in->sin_family=AF_INET;
         n = sendto(fd, strBuffer, strlen(strBuffer), 0, (struct sockaddr*) addr_in, addrlen);
-    }
+    }*/
 
     addrResendUDP = addr;   //save addr info in case it doesn't receive ACK
     addrlenResendUDP = addrlen;
@@ -91,8 +86,6 @@ int clientTalkUDP(char *serverIP, int serverPort, message *msg){
         perror("UDP write failed");
         exit(1);
     }
-
-    close(fd);
 
     return 0;
 }
@@ -119,29 +112,31 @@ int serverUDP(char *IP, int port){
     if(errcode==-1) exit(1); //error check
 
     freeaddrinfo(res);
+
+    //a tirar
+    serverSocketUDPGlobal=fd;
     
     return fd;
 }
 
 void receive_messageUDP(int serverSocket, message *msg){
  
-    ssize_t nread;
+    ssize_t n;
     char buffer[128+1];
-    struct sockaddr addr;
+    struct sockaddr_in addr;
+    socklen_t addrlen;
 
-    nread=recvfrom(serverSocket, buffer, 128, 0, (struct sockaddr*) &addr, &addrlenACKSendUDP);    //store addr info to send ACKs and answer EPRED to New Node once its place is found
-    sscanf(buffer, "%s %*d", msg->command);
+    addrlen = sizeof(addr);
+    n=recvfrom(serverSocket, buffer, 128, 0, (struct sockaddr*) &addr, &addrlen);    //store addr info to send ACKs and answer EPRED to New Node once its place is found
+    sscanf(buffer, "%s", msg->command);
 
-    addrACKSendUDP = addr;  //update global variable
-    
-    if(nread==-1) {
+    if(n==-1) {
         perror("UDP read error");
         exit(1);
     }
 
-    if(strcmp(msg->command, "ACK") == 0){
+    if(strncmp(msg->command, "ACK", 3) == 0){
         flagACK = 0;    //ACK received, turn off flag
-        printf("\nACK rcv !! \n");
         return;
     }
     else if(strcmp(msg->command, "EPRED") == 0){
@@ -153,8 +148,14 @@ void receive_messageUDP(int serverSocket, message *msg){
         sscanf(buffer, "%*s %d %d %d %s %d", &msg->searchKey, &msg->sequenceN, &msg->nodeKey, msg->ip, &msg->port);
     }
     else{
-        printf("\nIncoming message command is not listed\n");
+        printf("\nIncoming UDP message command is not listed\n");
     }
 
-    sendACK();  //if msg received isn't ACK, send ACK
+    n = sendto(serverSocket, "ACK", 3, 0, (struct sockaddr*) &addr, addrlen);
+    printf("\nACK sent\n");
+    if(n == -1){
+        perror("UDP write failed");
+        exit(1);
+    }
+    //sendACK();  //if msg received isn't ACK, send ACK
 }

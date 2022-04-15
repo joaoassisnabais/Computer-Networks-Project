@@ -114,7 +114,7 @@ int readTCP(int fd, message *msg){
             sscanf(buffer, "%*s %d %d %d %s %d", &msg->searchKey, &msg->sequenceN, &msg->nodeKey, msg->ip, &msg->port);
         }
         else{
-            printf("\nIncoming message command is not listed\n");
+            printf("\nIncoming TCP message command is not listed\n");
         }
         return 0;
     }

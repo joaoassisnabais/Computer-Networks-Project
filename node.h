@@ -35,5 +35,6 @@ typedef struct comms_message{
 void core(int selfKey, char *IP, int selfPort);
 void initState(bool isNew, nodeState *state, nodeInfo *prev, nodeInfo *next, int pfd, int nfd);
 int dist(int start, int end);
+void printmenu(bool isFull);
 
 #endif

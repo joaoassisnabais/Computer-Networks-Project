@@ -100,6 +100,7 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
                     return;
                 }
                 printf("Key %d found in node with:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n",seq[msg->sequenceN], msg->nodeKey, msg->ip, msg->port);
+                printmenu(0);
                 seq[msg->sequenceN] = -1;
             }
         }else{  //It's not for me
@@ -287,6 +288,7 @@ void find(nodeState *state, char *info, message *msg){
     else{
         if(isSystemCall){
             printf("Key %d found in node with:\n\tKey:%d \n\tIP:%s \n\tPort:%d \n", k, state->self->key, state->self->ip, state->self->port);
+            printmenu(0);
         }
         else if(isEFND){
             Bkey=-1;

@@ -291,8 +291,10 @@ void core(int selfKey, char *selfIP, int selfPort){
                 printf("\nNot a valid option, please try again\n");
             }
 
-            //prints divider between inputs
-            printmenu(0);
+            if(strcmp(option,"find") != 0 && strcmp(option,"f") != 0){
+                //prints divider between inputs
+                printmenu(0);
+            }
         }
         
         //TCP server

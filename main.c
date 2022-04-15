@@ -9,13 +9,15 @@
 #include <stdbool.h>
 #include "node.h"
 
-//NEED TO PROTECT AGAINST SIGPIPE
-
-
 int main(int argc, char **argv){
 
     int i, port;
     char ip[16];
+
+    if(argc != 4){
+        printf("\nIncorrect number of arguments\nInput should be './ring key key.ip key.port'\n");
+        exit(1);
+    }
 
     sscanf(argv[1], "%d", &i);
     strcpy(ip,argv[2]);

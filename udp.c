@@ -67,9 +67,9 @@ void clientTalkUDP(char *serverIP, int serverPort, message *msg){
     FD_ZERO(&socketUDP);
     FD_SET(serverSocketUDP, &socketUDP);
 
-    tv.tv_sec=1;
     //do 3 iterations (resends) expecting for ack
     for(int i=0; i<3; i++){
+        tv.tv_sec=1;
         if(select(serverSocketUDP+1, &socketUDP, NULL, NULL, &tv) < 0){
             perror("UDP select");
             exit(1);

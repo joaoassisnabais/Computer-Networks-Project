@@ -164,7 +164,6 @@ void receive_messageUDP(int serverSocket, message *msg){
         sscanf(buffer,"%*s %d", &msg->searchKey);   
         memcpy(&Baddr,&addr,addrlen);
         Baddrlen=addrlen;
-        //maybe call rcv_msg in here
     }
 
     else{

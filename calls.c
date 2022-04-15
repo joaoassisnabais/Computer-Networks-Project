@@ -79,6 +79,7 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
      */
     if(strcmp(msg->command, "FND") == 0){
         find(state, NULL, msg);
+        return;
     }
 
     /**
@@ -118,6 +119,7 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
                 msgRSP(state->next, NULL, msg, 1, -1, -1);
             }
         }   
+        return;
     }
 
     /**
@@ -127,6 +129,7 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
     if(strcmp(msg->command, "EFND") == 0){
         Bkey=msg->searchKey;
         find(state, NULL, msg);
+        return;
     }
 
     /**
@@ -140,6 +143,7 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
             sprintf(info,"pentry %d %s %d", msg->nodeKey, msg->ip, msg->port);
             pentry(state, info, current, maxfd);
         }
+        return;
     }
 }
 

@@ -16,9 +16,10 @@
 
 //sequence numbers and find Index are global variables
 int seq[100], findI;
+int serverSocketUDP, serverSocketTCP;
 //address of query node (after EFND)
-struct sockaddr addr;
-socklen_t addrlen;
+//struct sockaddr addr;
+//socklen_t addrlen;
 
 /**
  * @brief Finds distance between two keys in the ring
@@ -196,7 +197,7 @@ void closeSC(nodeState *state){
 void core(int selfKey, char *selfIP, int selfPort){
     char buffer[128], option[7];
     fd_set currentSockets, readySockets;
-    int serverSocketTCP, serverSocketUDP, maxfd, errcode;
+    int maxfd, errcode;
     nodeState *state = NULL;
     message msg;
 
@@ -253,8 +254,6 @@ void core(int selfKey, char *selfIP, int selfPort){
             }
 
             else if(strcmp(option,"show") == 0 || strcmp(option,"s") == 0){
-                if(maxfd==0) 
-                    printf("Can't be done outside of a ring\n");   //cant be done without initialized ring
                 show(state);
             }
 
@@ -291,7 +290,8 @@ void core(int selfKey, char *selfIP, int selfPort){
             //prints divider between inputs
             printmenu(0);
         }
-        //new connection to tcp server
+        
+        //TCP server
         if(FD_ISSET(serverSocketTCP,&readySockets)){
             if(state->next->fd != -1){
                 state->old->fd= state->next->fd;
@@ -303,13 +303,14 @@ void core(int selfKey, char *selfIP, int selfPort){
             FD_SET(state->next->fd, &currentSockets);
             maxfd=max(state->next->fd,maxfd);
         }
+        
+        //UDP server
         if(FD_ISSET(serverSocketUDP, &readySockets)){
             receive_messageUDP(serverSocketUDP, &msg);
             rcv_msg(&msg, state, &currentSockets, &maxfd);
-            //do what its supposed to do with the connection
-            
-
         }
+
+        //predecessor socket
         if(FD_ISSET(state->prev->fd, &readySockets)){
             errcode = readTCP(state->prev->fd, &msg);
             
@@ -323,6 +324,8 @@ void core(int selfKey, char *selfIP, int selfPort){
             }
             
         }
+        
+        //successor socket
         if(FD_ISSET(state->next->fd, &readySockets)){
             errcode = readTCP(state->next->fd, &msg);
             
@@ -335,6 +338,8 @@ void core(int selfKey, char *selfIP, int selfPort){
                 rcv_msg(&msg, state, &currentSockets, &maxfd);
             }
         }
+
+        //old successor socket
         if(FD_ISSET(state->old->fd, &readySockets)){
             errcode = readTCP(state->old->fd, &msg);
             //this means other end has closed the session

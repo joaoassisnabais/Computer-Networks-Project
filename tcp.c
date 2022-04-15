@@ -70,15 +70,12 @@ int serverTCP(char *IP, int port){
     return fd;
 }
 
-void closeServerTCP(){
-
-}
-
-void closeClientTCP(){
-
-}
-
-
+/**
+ * @brief Accepts a TCP connection
+ * 
+ * @param fd Server socket
+ * @return New socket
+ */
 int accept_connectionTCP(int fd){
 
     struct sockaddr addr;

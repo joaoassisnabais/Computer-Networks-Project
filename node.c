@@ -14,11 +14,11 @@
 
 #define max(A,B) ((A)>=(B)?(A):(B))
 
-//sequence numbers and find Index are global variables
+//Sequence numbers and find Index are global variables
 int seq[100], findI;
 int serverSocketUDP, serverSocketTCP;
 
-//info of bentry incoming node
+//Information of bentry incoming node
 struct sockaddr Baddr;  //bentry asking node address
 socklen_t Baddrlen;     //bentry asking node adress lenght
 int Bkey=-1;   //bentry asking node key to find
@@ -184,7 +184,11 @@ void initSC(nodeState *state, char *buffer) {
     state->SC->fd=0;    //fd is only used to determine if a shortcut exists (0 for yes, -1 for no)
 }
 
-/** */
+/**
+ * @brief Closes shortcut
+ * 
+ * @param state State Variables
+ */
 void closeSC(nodeState *state){
     state->SC->fd=-1;   //fd set to -1 to indicate shortcut doesn't exist anymore
 }
@@ -306,7 +310,7 @@ void core(int selfKey, char *selfIP, int selfPort){
         
         //UDP server
         if(FD_ISSET(serverSocketUDP, &readySockets)){
-            receive_messageUDP(serverSocketUDP, &msg);
+            receive_messageUDP(&msg);
             rcv_msg(&msg, state, &currentSockets, &maxfd);
         }
 
@@ -339,7 +343,7 @@ void core(int selfKey, char *selfIP, int selfPort){
             }
         }
 
-        //old successor socket
+        //Old successor socket
         if(FD_ISSET(state->old->fd, &readySockets)){
             errcode = readTCP(state->old->fd, &msg);
             //this means other end has closed the session

@@ -10,7 +10,14 @@
 #include "tcp.h"
 #include "node.h"
 
-int clientTalkUDP(char *serverIP, int serverPort, message *msg){
+/**
+ * @brief Sends UDP messages and expects respective ACKs
+ * 
+ * @param serverIP IP address of receiving node
+ * @param serverPort UDP port of the receiving node
+ * @param msg 
+ */
+void clientTalkUDP(char *serverIP, int serverPort, message *msg){
 
     struct addrinfo hints, *res;    //create addrinfo type structs to store hints and response data
     int errcode, n;
@@ -49,8 +56,10 @@ int clientTalkUDP(char *serverIP, int serverPort, message *msg){
         perror("UDP write failed");
         exit(1);
     }
+    
+    /* Print to see what message was sent trough UDP -> might come in handy in the discussion
     printf("\nmessage '%s' was sent\n", strBuffer);
-
+    */
     fd_set socketUDP;
     struct timeval tv;
     bool recAck=false;
@@ -67,9 +76,9 @@ int clientTalkUDP(char *serverIP, int serverPort, message *msg){
         }
 
         if(FD_ISSET(serverSocketUDP, &socketUDP)){
-            receive_messageUDP(serverSocketUDP, &ack);
+            receive_messageUDP(&ack);
             recAck=true;
-            break;  //to exit if an ack is received
+            break;  //exits if an ack is received
         }
 
         n = sendto(serverSocketUDP, strBuffer, strlen(strBuffer), 0,res->ai_addr, res->ai_addrlen);
@@ -77,7 +86,7 @@ int clientTalkUDP(char *serverIP, int serverPort, message *msg){
         if(n == -1){
         perror("UDP write failed");
         exit(1);
-    }
+        }
     }
 
     //see if i received an ack
@@ -96,9 +105,16 @@ int clientTalkUDP(char *serverIP, int serverPort, message *msg){
     if(serverIP!=NULL){ 
         freeaddrinfo(res);
     }
-    return 0;
+    return;
 }
 
+/**
+ * @brief Initializes UDP server socket
+ * 
+ * @param IP My machines IP
+ * @param port My machines port
+ * @return bound socket
+ */
 int serverUDP(char *IP, int port){
 
     struct addrinfo hints,*res;
@@ -125,20 +141,26 @@ int serverUDP(char *IP, int port){
     return fd;
 }
 
-void receive_messageUDP(int serverSocket, message *msg){
+/**
+ * @brief Receives messages incoming from the UDP socket
+ * 
+ * @param msg Message structure to fill with information
+ */
+void receive_messageUDP(message *msg){
  
     ssize_t nread;
     char buffer[128+1];
     struct sockaddr addr;
     socklen_t addrlen=sizeof(addr);
 
-    nread=recvfrom(serverSocket, buffer, 128, 0, &addr, &addrlen);
+    nread=recvfrom(serverSocketUDP, buffer, 128, 0, &addr, &addrlen);
 
     if(nread==-1) {
         perror("UDP read error");
         exit(1);
     }
 
+    //ACKs were coming in unformmatted, always works this way
     if(strncmp(buffer, "ACK", 3)==0){
         strcpy(msg->command, "ACK");
     }
@@ -146,9 +168,10 @@ void receive_messageUDP(int serverSocket, message *msg){
         sscanf(buffer, "%s %*d", msg->command);
     }    
 
-
     if(strcmp(msg->command, "ACK") == 0){
-        printf("received ack");
+        /*  Print to see if we received the ack message -> might come in handy in the discussion
+        printf("\nReceived ack\n");
+        */
         return;
     }
     
@@ -173,11 +196,10 @@ void receive_messageUDP(int serverSocket, message *msg){
 
     char str[5];
     strcpy(str, "ACK");    
-    int n = sendto(serverSocket, str, strlen(str), 0, &addr, addrlen);
+    int n = sendto(serverSocketUDP, str, strlen(str), 0, &addr, addrlen);
 
     if(n == -1){
         perror("UDP write failed");
         exit(1);
     }
-
 }

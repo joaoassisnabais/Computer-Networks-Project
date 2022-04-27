@@ -95,7 +95,7 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
                 if(seq[msg->sequenceN]==Bkey){
                     Bkey=-1;
                     strcpy(msg->command, "EPRED");
-                    clientTalkUDP(NULL, 0, msg);
+                    clientTalkUDP(NULL, 0, msg, state->next->fd);
                     seq[msg->sequenceN] = -1;
                     return;
                 }
@@ -108,16 +108,16 @@ void rcv_msg(message *msg, nodeState *state, fd_set *current, int *maxfd){
             if(state->SC->fd!=-1){ 
                 //Checks if SC is closer
                 if(dist(state->SC->key, msg->searchKey) < dist(state->next->key, msg->searchKey)){  //SC is closer
-                    msgRSP(state->SC, NULL, msg, 0, -1, -1);
+                    msgRSP(state->SC, NULL, msg, 0, -1, -1, state);
                 }
                 //SC exists but it's not the closest
                 else{ 
-                    msgRSP(state->next, NULL, msg, 1, -1, -1);
+                    msgRSP(state->next, NULL, msg, 1, -1, -1, state);
                 }
             }
             //SC doesn't exist
             else{
-                msgRSP(state->next, NULL, msg, 1, -1, -1);
+                msgRSP(state->next, NULL, msg, 1, -1, -1, state);
             }
         }   
         return;
@@ -163,7 +163,7 @@ void bentry(nodeState *state, char *info){
     }
     strcpy(msg.command,"EFND");
     msg.nodeKey=state->self->key;
-    clientTalkUDP(contact.ip, contact.port, &msg);
+    clientTalkUDP(contact.ip, contact.port, &msg, state->next->fd);
 }
 
 /**
@@ -220,9 +220,9 @@ void leave(nodeState *state, fd_set *current, int *maxfd, int TCPsocket, int UDP
     if(state->next->fd != -1){
         msgPred(state->next->fd, state->prev);
         closeTCP(state->next->fd);
-        closeTCP(TCPsocket);
-        closeTCP(UDPsocket);
     }
+    closeTCP(TCPsocket);
+    closeTCP(UDPsocket);
     FD_ZERO(current);
     FD_SET(0, current);
     maxfd=0;
@@ -272,16 +272,16 @@ void find(nodeState *state, char *info, message *msg){
         if(state->SC->fd != -1){
             //checks if SC is closer than next
             if(dist(state->SC->key, k) < dist(state->next->key, k)){    //SC is closer than next
-                msgFND(state->SC, state->self, msg, 0, k);                
+                msgFND(state->SC, state->self, msg, 0, k, state);                
             }
             //SC exists but it's not the closest
             else{
-                msgFND(state->next, state->self, msg, 1, k);
+                msgFND(state->next, state->self, msg, 1, k, state);
             }                
         }
         //SC doesn't exist
         else{
-            msgFND(state->next, state->self, msg, 1, k);
+            msgFND(state->next, state->self, msg, 1, k, state);
         }
     }
     //key is in self
@@ -296,23 +296,23 @@ void find(nodeState *state, char *info, message *msg){
             msg->nodeKey=state->self->key;
             strcpy(msg->ip,state->self->ip);
             msg->port=state->self->port;
-            clientTalkUDP(NULL, 0, msg);
+            clientTalkUDP(NULL, 0, msg, state->next->fd);
             return;
         }
         else{
             //check if SC is closer than next
             if(state->SC->fd != -1){
                 if(dist(state->SC->key, k) < dist(state->next->key, k)){
-                    msgRSP(state->SC, state->self, NULL, 0, msg->nodeKey,msg->sequenceN);
+                    msgRSP(state->SC, state->self, NULL, 0, msg->nodeKey,msg->sequenceN, state);
                 }
                 //SC exists but it's not the closest
                 else{
-                    msgRSP(state->next, state->self, NULL, 1, msg->nodeKey, msg->sequenceN); 
+                    msgRSP(state->next, state->self, NULL, 1, msg->nodeKey, msg->sequenceN, state); 
                 }
             }
             //SC doesn't exist
             else{
-                msgRSP(state->next, state->self, NULL, 1, msg->nodeKey, msg->sequenceN);
+                msgRSP(state->next, state->self, NULL, 1, msg->nodeKey, msg->sequenceN, state);
             }
         }
     }
@@ -359,7 +359,7 @@ void msgSelf(int fd, nodeInfo *self){
  * @param k key from the node that asked for it
  * @param seqn Sequence number from FND
  */
-void msgRSP(nodeInfo *receiver, nodeInfo *node, message *msg, bool isTCP, int k, int seqn){
+void msgRSP(nodeInfo *receiver, nodeInfo *node, message *msg, bool isTCP, int k, int seqn, nodeState *state){
     if(msg == NULL) {    //system call
         message aux;
         msg = &aux;     //create msg struct with system call inputs
@@ -372,7 +372,7 @@ void msgRSP(nodeInfo *receiver, nodeInfo *node, message *msg, bool isTCP, int k,
         msg->sequenceN = seqn;
     }
     if(isTCP) talkTCP(receiver->fd, msg);
-    else clientTalkUDP(receiver->ip, receiver->port, msg);
+    else clientTalkUDP(receiver->ip, receiver->port, msg, state->next->fd);
 }
 
 /**
@@ -384,7 +384,7 @@ void msgRSP(nodeInfo *receiver, nodeInfo *node, message *msg, bool isTCP, int k,
  * @param isTCP If it's sent to the shortcut or to the next node
  * @param k key to be found
  */
-void msgFND(nodeInfo *receiver, nodeInfo *node, message *msg, bool isTCP, int k){
+void msgFND(nodeInfo *receiver, nodeInfo *node, message *msg, bool isTCP, int k, nodeState *state){
     if(msg == NULL) {    //system call
         message aux;
         msg = &aux;     //create msg struct with system call inputs
@@ -398,6 +398,6 @@ void msgFND(nodeInfo *receiver, nodeInfo *node, message *msg, bool isTCP, int k)
     }
 
     if(isTCP) talkTCP(receiver->fd, msg);
-    else clientTalkUDP(receiver->ip, receiver->port, msg);
+    else clientTalkUDP(receiver->ip, receiver->port, msg, state->next->fd);
 }
 

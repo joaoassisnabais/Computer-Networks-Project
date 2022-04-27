@@ -270,13 +270,19 @@ void core(int selfKey, char *selfIP, int selfPort){
             else if(strcmp(option,"leave") == 0 || strcmp(option,"l") == 0){
                 if(maxfd==0) 
                     printf("\nNot in any ring\n");
-                else
+                else{
                     leave(state, &currentSockets, &maxfd, serverSocketTCP, serverSocketUDP);
+                    serverSocketTCP=-1;
+                    serverSocketUDP=-1;
+                }
             }
 
             else if(strcmp(option,"exit") == 0 || strcmp(option,"e") == 0){
-                if(maxfd!=0)
+                if(maxfd!=0){
                     leave(state, &currentSockets, &maxfd, serverSocketTCP, serverSocketUDP);
+                    serverSocketTCP=0;
+                    serverSocketUDP=0;
+                }
 
                 printf("\nExiting...\n");
                 freeSelf(state);

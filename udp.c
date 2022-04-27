@@ -17,7 +17,7 @@
  * @param serverPort UDP port of the receiving node
  * @param msg 
  */
-void clientTalkUDP(char *serverIP, int serverPort, message *msg){
+void clientTalkUDP(char *serverIP, int serverPort, message *msg, int socketTCP){
 
     struct addrinfo hints, *res;    //create addrinfo type structs to store hints and response data
     int errcode, n;
@@ -70,6 +70,7 @@ void clientTalkUDP(char *serverIP, int serverPort, message *msg){
     //do 3 iterations (resends) expecting for ack
     for(int i=0; i<3; i++){
         tv.tv_sec=1;
+        tv.tv_usec=0;
         if(select(serverSocketUDP+1, &socketUDP, NULL, NULL, &tv) < 0){
             perror("UDP select");
             exit(1);
@@ -93,7 +94,7 @@ void clientTalkUDP(char *serverIP, int serverPort, message *msg){
     if(!recAck){
         //see if the message can be sent via TCP
         if(strcmp(msg->command, "FND")==0 || strcmp(msg->command, "RSP")==0){
-            talkTCP(serverSocketTCP, msg);
+            talkTCP(socketTCP, msg);
         }
         else if(strcmp(msg->command, "EPRED")==0 || strcmp(msg->command, "EFND")==0){
             printf("\nDidn't receive in response to %s message\n", msg->command);
